@@ -47,10 +47,10 @@ EOF
 # wheter the user answer with an 'y' or a 'n'.
 function prompt-y-or-n() {
     local -r message="$*"
-    if [[ $# -eq 0 ]]; then
-        echo "error: at least one (1) parameter must be given"
+    (($# > 0)) || {
+        echo "ERROR: promt-y-or-n() -- no parameters given"
         exit 1
-    fi
+    }
 
     read -rp "$message " prompt;
     while true; do
@@ -75,12 +75,13 @@ function prompt-y-or-n() {
 function _write-tar-file-from-dir() {
     local target_file="$1"
     local src_dir="$2"
-    if [[ $# -ne 2 ]]; then
-        echo "error: two (2) parameters must be given"
+    (($# == 2)) || {
+        echo "ERROR: _write-tar-file-from-dir() -- Need 2 parameters"
         exit 1
-    fi
+    }
 
-    if tar --create --gzip --file="$target_file" --directory="$src_dir" . >/dev/null 2>&1; then
+    if tar --create --gzip --file="$target_file" \
+           --directory="$src_dir" . >/dev/null 2>&1; then
         echo "File writed at $target_file."
         return 0;
     else
@@ -98,10 +99,10 @@ function _write-tar-file-from-dir() {
 function write-tar-file-from-dir-safely() {
     local target_file="$1"
     local src_dir="$2"
-    if [[ $# -ne 2 ]]; then
+    (($# == 2)) || {
         echo "error: two (2) parameters must be given"
         exit 1
-    fi
+    }
 
     if [[ -e $target_file ]]; then
         echo "File $target_file already exists!"
@@ -126,10 +127,10 @@ function write-tar-file-from-dir-safely() {
 function archive-save-file() {
     local target_file="$1"
     local save_dir="$2"
-    if [[ $# -ne 2 ]]; then
+    (($# == 2)) || {
         echo "error: two (2) parameters must be given"
         exit 1
-    fi
+    }
 
     echo "A new save file will be writen at:"
     echo "target_file"

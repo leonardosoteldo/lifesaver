@@ -26,13 +26,14 @@ Lifesaver: manage your Moonring save files.
 
  options:
  -h          Print this [h]elp and exit.
- -s FILE     Add current [s]ave file to the archive as FILE.
  -l          [l]ist save files in the archive and exit.
- -t          [t]esting mode (not implemented.)
- -b          [b]ackup the save file's archive (not implemented.)
+ -F          [F]orce defined actions without asking for confirmation
+             (CARE: this will overwrite any file witouth asking.)
+ -f FILE     Add current save [f]ile to the archive as FILE.tar.gz
+ -a ARCHIVE  Define [a]rchive to which save files are added to.
+ -s SAVE_DIR Define the Moonring [s]ave directory to be used.
  -g          Move specified save file to the Moonring [g]ame to use it
-             playing (not implemented.)
- -r          [r]emove specified save file from archive (not implemented.)
+             playing.
 
 EOF
 }
@@ -41,11 +42,11 @@ EOF
 ### Functions definitions
 ###
 
-# $* = message
+# $* = message to prompt the user
 # Ask for confirmation using $message and returns 0 (true) or 1 (false)
 # wheter the user answer with an 'y' or a 'n'.
 function prompt-y-or-n() {
-    local message="$*"
+    local -r message="$*"
     if [[ $# -eq 0 ]]; then
         echo "error: at least one (1) parameter must be given"
         exit 1
@@ -167,7 +168,7 @@ while getopts :hlts: OPT; do
             exit
             ;;
         *)
-            echo "lifesaver: unrecognized option '$1'"
+            printf "lifesaver: unrecognized option '%q'\n" "$1"
             echo "Try 'lifesaver -h' for more information."
             exit 1
     esac

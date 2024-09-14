@@ -57,3 +57,61 @@ teardown() {
 @test "test bats teardown" {
     assert_file_not_exists "$BATS_FILE_TMPDIR/some-file"
 }
+
+#
+# bats-assert functions:
+#
+# assert / refute                 = Assert a given expression evaluates to true or false.
+# assert_equal                    = Assert two parameters are equal.
+# assert_not_equal                = Assert two parameters are not equal.
+# assert_success / assert_failure = Assert exit status is 0 or 1.
+# assert_output / refute_output   = Assert output does (or does not) contain given content.
+# assert_line / refute_line       = Assert a specific line of output does (or does not)
+#                                   contain given content.
+# assert_regex / refute_regex     = Assert a parameter does (or does not) match given pattern.
+#
+
+@test "test lifesaver edge cases input handling" {
+    # Next test case does not work because interactive nature of the
+    # script.
+
+    # Wrong filename given
+    # run lifesaver.sh -s this/is/a/path
+    # assert_failure
+    # assert_output --partial "given FILE parameter cannot be a path"
+
+    # No parameter given
+    run lifesaver.sh
+    assert_failure
+    assert_line --index 0 "lifesaver: no option given"
+
+    # No preceeding dash with options
+    run  lifesaver.sh hls
+    assert_failure
+    assert_line --index 0 "lifesaver: unrecognized option 'hls'"
+
+    # Invalid option given alone
+    run lifesaver.sh -x
+    assert_failure
+    assert_line "lifesaver: unrecognized option '-x'"
+
+    # Invalid option given preceeding a valid option
+    run lifesaver.sh -xh
+    assert_failure
+    assert_line --index 0 "lifesaver: unrecognized option '-xh'"
+
+    # Invalid options given after a valid option
+    run lifesaver.sh -hxc
+    assert_success
+}
+
+@test "test lifesaver help display" {
+    run lifesaver.sh -h
+    assert_success
+    assert_line --index 0 "Lifesaver: manage your Moonring save files."
+}
+
+@test "test lifesaver -l (list) option" {
+    run lifesaver.sh -l
+    assert_success
+}

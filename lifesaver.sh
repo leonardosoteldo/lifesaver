@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Bash script for managing Moonring save files
 
@@ -100,7 +100,7 @@ function write-tar-file-from-dir-safely() {
     local target_file="$1"
     local src_dir="$2"
     (($# == 2)) || {
-        echo "error: two (2) parameters must be given"
+        echo "ERROR: write-tar-file-from-dir-safely() -- Needs 2 parameters"
         exit 1
     }
 
@@ -119,8 +119,8 @@ function write-tar-file-from-dir-safely() {
     fi;
 }
 
-# $1 = target_file
-# $2 = save_dir
+# $1 = target_file to write to
+# $2 = save_dir to tar
 # Archive the current save file of Moonring game. Create a .tar.gz
 # archive at $target_file, using $save_dir as source. $save_dir is
 # usually $moonring_save_dir, located at "~/.local/share/Moonring/"
@@ -128,7 +128,7 @@ function archive-save-file() {
     local target_file="$1"
     local save_dir="$2"
     (($# == 2)) || {
-        echo "error: two (2) parameters must be given"
+        echo "ERROR: archive-save-file() -- Needs 2 parameters"
         exit 1
     }
 

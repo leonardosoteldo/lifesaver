@@ -22,16 +22,16 @@ function help(){
 
 Lifesaver: manage your Moonring save files.
 
- Syntax: lifesaver [OPTION]... [FILE]...
+ Syntax: lifesaver [OPTIONS]... [FILE]...
 
  options:
  -h          Print this [h]elp and exit.
- -l          [l]ist save files in the archive and exit.
  -F          [F]orce defined actions without asking for confirmation
              (CARE: this will overwrite any file witouth asking.)
- -f FILE     Add current save [f]ile to the archive as FILE.tar.gz
  -a ARCHIVE  Define [a]rchive to which save files are added to.
  -s SAVE_DIR Define the Moonring [s]ave directory to be used.
+ -l          [l]ist all files in the archive directory and exit.
+ -f FILE     Add current save [f]ile to the archive as FILE.tar.gz
  -c          Choose a save file from the archive to be made the [c]urrent
              Moonring save file to play with.
 
@@ -47,8 +47,9 @@ EOF
 # wheter the user answer with an 'y' or a 'n'.
 function prompt-y-or-n() {
     local -r message="$*"
-    (( $# > 0 )) || {
-        echo "ERROR: promt-y-or-n() -- no parameters given"
+    [[ $# -gt 0 ]] || {
+        echo "lifesaver: Exit with error"
+        echo "promt-y-or-n(): no parameters given"
         exit 1
     }
 
@@ -72,11 +73,12 @@ function prompt-y-or-n() {
 # Create a .tar.gz archive of src_dir located at target_file
 # Return 0 if succeded or 1 if not. Note that the actual dir is not
 # archived, only its contents.
-function _write-tar-file-from-dir() {
+function write-tar-file-from-dir() {
     local target_file="$1"
     local src_dir="$2"
-    (( $# == 2 )) || {
-        echo "ERROR: _write-tar-file-from-dir() -- Need 2 parameters"
+    [[ $# -eq 2 ]] || {
+        echo "lifesaver: Exit with error"
+        echo "write-tar-file-from-dir(): Need 2 parameters"
         exit 1
     }
 
@@ -99,7 +101,7 @@ function _write-tar-file-from-dir() {
 function write-tar-file-from-dir-safely() {
     local target_file="$1"
     local src_dir="$2"
-    (( $# == 2 )) || {
+    [[ $# -eq 2 ]] || {
         echo "ERROR: write-tar-file-from-dir-safely() -- Needs 2 parameters"
         exit 1
     }
@@ -107,14 +109,14 @@ function write-tar-file-from-dir-safely() {
     if [[ -e $target_file ]]; then
         echo "File $target_file already exists!"
         if prompt-y-or-n "Do you want to overwrite it? [y/n] "; then
-            _write-tar-file-from-dir "$target_file" "$src_dir"
+            write-tar-file-from-dir "$target_file" "$src_dir"
             return;
         else
             echo "Aborted by the user."
             return 0
         fi;
     else
-        _write-tar-file-from-dir "$target_file" "$src_dir"
+        write-tar-file-from-dir "$target_file" "$src_dir"
         return
     fi;
 }
@@ -127,16 +129,17 @@ function write-tar-file-from-dir-safely() {
 function archive-save-file() {
     local target_file="$1"
     local save_dir="$2"
-    (( $# == 2 )) || {
-        echo "ERROR: archive-save-file() -- Needs 2 parameters"
+    [[ $# -eq 2 ]] || {
+        echo "lifesaver: Exit with error"
+        echo "archive-save-file(): Needs 2 parameters"
         exit 1
     }
 
     if $force_flag; then
-       _write-tar-file-from-dir "$target_file" "$moonring_save_dir";
+       write-tar-file-from-dir "$target_file" "$moonring_save_dir";
     else
         echo "A new save file will be writen at:"
-        echo "$target_file"
+        echo "    $target_file"
         if prompt-y-or-n "Are you sure you want to proceed? [y/n] "; then
             write-tar-file-from-dir-safely "$target_file" "$save_dir"
             return;
@@ -150,8 +153,9 @@ function archive-save-file() {
 # $1 - moonring save dir
 # $2 - save file archive
 update-moonring-save-file() {
-    (( $# == 0 )) || {
-        echo "ERROR: update-moonring-save-file() -- 1 argument must be given"
+    [[ $# -eq 0 ]] || {
+        echo "lifesaver: Exit with error"
+        echo "update-moonring-save-file(): 1 argument must be given"
     }
 
     echo "$1" >/dev/null 2>&1;
@@ -169,7 +173,7 @@ update-moonring-save-file() {
 ## e.g. "lifesaver -f /path/that/dont/exists"
 
 main() {
-    while getopts :hlFcf:a: OPT; do
+    while getopts :hlFcf:a:s: OPT; do
         case $OPT in
             h)
                 help
@@ -180,6 +184,9 @@ main() {
                 ;;
             a)
                 lifesaver_archive="$OPTARG"
+                ;;
+            s)
+                moonring_save_dir="$OPTARG"
                 ;;
             l)
                 ls "$lifesaver_archive"
@@ -207,7 +214,7 @@ main() {
     done
 
     ## Handle edge cases
-    if (( $# == 0 )) ; then   # No parameter given
+    if [[ $# -eq 0 ]] ; then  # No parameter given
         echo "lifesaver: no option given"
         echo "Try 'lifesaver -h' for more information."
         exit 1;

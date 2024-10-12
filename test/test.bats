@@ -7,6 +7,7 @@ load "$BATS_TEST_DIRNAME/.bats/test_helper/bats-support/load.bash"
 load "$BATS_TEST_DIRNAME/.bats/test_helper/bats-file/load.bash"
 
 setup_file() {
+    declare -g PATH BATS_TMPDIR BATS_FILE_TMPDIR
     # Add the project's root dir into $PATH as first
     PATH="$BATS_TEST_DIRNAME/../:$PATH"
     # Assign a base directory for creating temp dirs or files
@@ -22,21 +23,36 @@ teardown_file() {
 }
 
 setup() {
-    local -r save_dir="$BATS_FILE_TMPDIR/moonring/save"
+    local -r save_dir="$BATS_FILE_TMPDIR/moonring"
     local -r archive_dir="$BATS_FILE_TMPDIR/archive"
-    # create files moonring/file{1..3} and moonring/save/file{1..3}
+
+    # Create files moonring/file{1..3} and moonring/save/file{1..3}
     # at $BATS_FILE_TMPDIR
-    mkdir -p "$save_dir"
-    touch "$save_dir/../file"{1..3} "$save_dir/file"{1..3}
-    # create files archive/already_exists.tar.gz and archive/already_exists
+    mkdir -p "$save_dir/save/"
+    touch "$save_dir/file"{1..3} "$save_dir/save/file"{1..3}
+
+    # Create files archive/already_exists.tar.gz and archive/already_exists
     # at $BATS_FILE_TMPDIR
     mkdir "$archive_dir"
     touch "$archive_dir/already_exists.tar.gz" "$archive_dir/already_exists"
+
+    # Declare lifesaver environment variables
+    export MOONRING_SAVE_DIR="$save_dir"
+    export LIFESAVER_ARCHIVE="$archive_dir"
+
+    # CRITICAL: Fail if lifesaver ignores the environment variable;
+    # otherwise user's files may be compromised by testing processes.
+    if [ "$(lifesaver.sh -l)" != "$(ls "$archive_dir")"  ] ; then
+         echo "Error: lifesaver is not properly recognizing setup environment variables" >&2
+         echo "Testing was aborted to avoid compromising user files" >&2
+         return 1
+    fi
 }
 
 teardown() {
     # Delete the tmpdir contents only
-    rm -r "${BATS_FILE_TMPDIR:?}/"*
+    # shellcheck disable=2086
+    rm -r ${BATS_FILE_TMPDIR/*:?"BATS_FILE_TMPDIR is unset or null!"}
 }
 
 @test "test bats setup" {
@@ -52,6 +68,9 @@ teardown() {
     assert_file_exists "$archive_dir/already_exists.tar.gz"
     # create some file for testing teardown in subsequent test
     touch "$BATS_FILE_TMPDIR/some-file"
+    # Test the testing setup of environment variables of lifesaver
+    assert [ "$MOONRING_SAVE_DIR" == "$save_dir" ]
+    assert [ "$LIFESAVER_ARCHIVE" == "$archive_dir" ]
 }
 
 @test "test bats teardown" {
@@ -70,6 +89,16 @@ teardown() {
 #                                   contain given content.
 # assert_regex / refute_regex     = Assert a parameter does (or does not) match given pattern.
 #
+
+# The environment variables are defined in the 'setup()' which are
+# executed before every bats test. Is important to have this test up
+# in priority so it fails fast and no changes are made to the actual
+# lifesaver's files used by the user.
+@test "test lifesaver environment variables functionality" {
+    run lifesaver.sh -l
+    assert_output "$(ls "$BATS_FILE_TMPDIR/archive/")"
+}
+
 
 @test "test lifesaver edge cases input handling" {
     # Next test case does not work because interactive nature of the
@@ -112,6 +141,8 @@ teardown() {
 }
 
 @test "test lifesaver -l (list) option" {
-    run lifesaver.sh -l
+    local -r archive_dir="$BATS_FILE_TMPDIR/archive"
+    run lifesaver.sh -a "$archive_dir" -l
     assert_success
+    assert_output "$(ls "$archive_dir")"
 }

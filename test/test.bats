@@ -76,7 +76,7 @@ teardown() {
     # script.
 
     # Wrong filename given
-    # run lifesaver.sh -s this/is/a/path
+    # run lifesaver.sh -f this/is/a/path
     # assert_failure
     # assert_output --partial "given FILE parameter cannot be a path"
 

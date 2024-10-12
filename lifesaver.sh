@@ -6,10 +6,10 @@
 ### Constants definition
 ###
 
-# This is done to remove repeated slashes in the paths. Not that it matters...
-declare -g moonring_save_dir="$HOME/.local/share/Moonring/"
-declare -g lifesaver_archive="$HOME/bin/moonring/save-files/"
-declare -g force_flag="false"
+declare -g MOONRING_SAVE_DIR LIFESAVER_ARCHIVE FORCE_FLAG
+MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-"$HOME/.local/share/Moonring/"}
+LIFESAVER_ARCHIVE=${LIFESAVER_ARCHIVE:-"$HOME/bin/moonring/save-files/"}
+FORCE_FLAG="false"
 
 ## TODO: lifesaver must validate these constant values
 
@@ -125,7 +125,7 @@ function write-tar-file-from-dir-safely() {
 # $2 = save_dir to tar
 # Archive the current save file of Moonring game. Create a .tar.gz
 # archive at $target_file, using $save_dir as source. $save_dir is
-# usually $moonring_save_dir, located at "~/.local/share/Moonring/"
+# usually $MOONRING_SAVE_DIR, located at "~/.local/share/Moonring/"
 function archive-save-file() {
     local target_file="$1"
     local save_dir="$2"
@@ -135,8 +135,8 @@ function archive-save-file() {
         exit 1
     }
 
-    if $force_flag; then
-       write-tar-file-from-dir "$target_file" "$moonring_save_dir";
+    if $FORCE_FLAG; then
+       write-tar-file-from-dir "$target_file" "$MOONRING_SAVE_DIR";
     else
         echo "A new save file will be writen at:"
         echo "    $target_file"
@@ -180,25 +180,25 @@ main() {
                 exit
                 ;;
             F)
-                force_flag="true"
+                FORCE_FLAG="true"
                 ;;
             a)
-                lifesaver_archive="$OPTARG"
+                LIFESAVER_ARCHIVE="$OPTARG"
                 ;;
             s)
-                moonring_save_dir="$OPTARG"
+                MOONRING_SAVE_DIR="$OPTARG"
                 ;;
             l)
-                ls "$lifesaver_archive"
+                ls "$LIFESAVER_ARCHIVE"
                 exit
                 ;;
             f)
-                local -r target_file="$lifesaver_archive/$OPTARG"
-                archive-save-file "$target_file" "$moonring_save_dir"
+                local -r target_file="$LIFESAVER_ARCHIVE/$OPTARG"
+                archive-save-file "$target_file" "$MOONRING_SAVE_DIR"
                 exit
                 ;;
             c)
-                update-moonring-save-file "$moonring_save_dir"
+                update-moonring-save-file "$MOONRING_SAVE_DIR"
                 exit
                 ;;
             :)

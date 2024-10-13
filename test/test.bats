@@ -21,7 +21,7 @@ teardown_file() {
     # Delete the tmpdir created in `setup_file'
     [ -d "$BATS_FILE_TMPDIR" ] && temp_del "$BATS_FILE_TMPDIR"
     return 0 # Somehow bats is running this repeatedly as a test and
-             # fails if this line is omitted as 'temp_del' returns '0'
+             # fails if this line is omitted as 'temp_del' returns '1'
 }
 
 setup() {
@@ -43,15 +43,18 @@ setup() {
     export MOONRING_SAVE_DIR=$save_dir
     export LIFESAVER_ARCHIVE=$archive_dir
 
-    # TODO: Fix this hack. Correct lifesaver's environmental info
-    # should be used instead
-
-    # CRITICAL: Fail if lifesaver ignores the environment variable;
+    # CRITICAL FAIL: if lifesaver ignores the environment variable;
     # otherwise user's files may be compromised by testing processes.
-    if [ "$(lifesaver.sh -l)" != "$(ls "$archive_dir")"  ] ; then
-         echo "Error: lifesaver is not properly recognizing setup environment variables" >&2
-         echo "Testing was aborted to avoid compromising user files" >&2
-         return 1
+    local env_vars save_var archive_var
+    env_vars=$(lifesaver.sh -v)
+    # Print the third column of every line containing '/WORD/' from
+    # "$env_vars" used as a here document:
+    save_var=$(awk '/MOONRING/ {print $3}' <<< "$env_vars")
+    archive_var=$(awk '/ARCHIVE/ {print $3}' <<< "$env_vars")
+    if [ "$save_var" != "$save_dir" ] || [ "$archive_var" != "$archive_dir" ]; then
+        echo "Error: lifesaver is not properly recognizing setup environment variables" >&2
+        echo "Testing was aborted to avoid compromising user files" >&2
+        return 1
     fi
 }
 
@@ -157,15 +160,7 @@ teardown() {
 # Note that the -F (--force) option is almos always used, as a way to
 # avoid the need to mock interactive use in testing
 
-@test "test 'lifesaver -Ff somefile'" {
-    run lifesaver.sh -Ff somefile.tar.gz
-    assert_file_exists "$BATS_FILE_TMPDIR/archive/somefile.tar.gz"
-    # Assert that the tarred file's contents are correct
-    assert tar --diff \
-           --file="$BATS_FILE_TMPDIR/archive/somefile.tar.gz" \
-           --directory="$BATS_FILE_TMPDIR" './Moonring'
-}
-
+# As -F is used saving a new file and overwriting is the same action
 @test "test 'lifesaver -Ff already_exists.tar.gz'" {
     run lifesaver.sh -Ff already_exists.tar.gz
     assert_file_exists "$BATS_FILE_TMPDIR/archive/already_exists.tar.gz"
@@ -182,12 +177,15 @@ teardown() {
         -v # Print lifesaver environmental variables values
     assert_output --partial "$BATS_FILE_TMPDIR/Moonring/save/"
     assert_output --partial "$BATS_FILE_TMPDIR/archive2/"
-}
 
-@test "test 'lifesaver -v' with environment variables" {
-    LIFESAVER_ARCHIVE=$BATS_FILE_TMPDIR/archive2/
-    MOONRING_SAVE_DIR=$BATS_FILE_TMPDIR/Moonring/save
-    run lifesaver.sh -v
-    assert_output --partial "$BATS_FILE_TMPDIR/archive2/"
-    assert_output --partial "$BATS_FILE_TMPDIR/Moonring/save"
+    # Test if environment variables are unchanged (this must be in the
+    # same test function, to test that -a nor -s mutates the state.)
+    local env_vars save_dir archive_dir
+    env_vars=$(lifesaver.sh -v)
+    # Print the 3º column of lines matching '/WORD/' in 'env_vars'
+    save_dir=$(awk '/MOONRING/ {print $3}' <<< "$env_vars")
+    archive_dir=$(awk '/ARCHIVE/ {print $3}' <<< "$env_vars")
+    # Compare this values against the values of environmental vars
+    assert [ "$archive_dir" == "$BATS_FILE_TMPDIR/archive" ]
+    assert [ "$save_dir" == "$BATS_FILE_TMPDIR/Moonring" ]
 }

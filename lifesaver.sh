@@ -9,7 +9,7 @@
 declare -g MOONRING_SAVE_DIR LIFESAVER_ARCHIVE FORCE_FLAG
 MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-"$HOME/.local/share/Moonring/"}
 LIFESAVER_ARCHIVE=${LIFESAVER_ARCHIVE:-"$HOME/bin/moonring/save-files/"}
-FORCE_FLAG="false"
+FORCE_FLAG='false'
 
 ## TODO: lifesaver must validate these constant values
 
@@ -27,9 +27,10 @@ Lifesaver: manage your Moonring save files.
  options:
  -h          Print this [h]elp and exit.
  -F          [F]orce defined actions without asking for confirmation
-             (CARE: this will overwrite any file witouth asking.)
+             (this will overwrite any file witouth asking!)
  -a ARCHIVE  Define [a]rchive to which save files are added to.
  -s SAVE_DIR Define the Moonring [s]ave directory to be used.
+ -v          Print lifesaver's environmental [v]ariables values.
  -l          [l]ist all files in the archive directory and exit.
  -f FILE     Add current save [f]ile to the archive as FILE.tar.gz
  -c          Choose a save file from the archive to be made the [c]urrent
@@ -82,8 +83,13 @@ function write-tar-file-from-dir() {
         exit 1
     }
 
+    # TODO: fix this -->
+
+    # Note that "Moonring" lifesaver will not work if the
+    # 'MOONRING_SAVE_DIR is not actually named 'Moonring'
+    # (capitalized)
     if tar --create --gzip --file="$target_file" \
-           --directory="$src_dir/" . >/dev/null 2>&1; then
+           --directory="$src_dir/../" ./Moonring/ >/dev/null 2>&1; then
         echo "File writed at $target_file"
         return 0;
     else
@@ -173,20 +179,26 @@ update-moonring-save-file() {
 ## e.g. "lifesaver -f /path/that/dont/exists"
 
 main() {
-    while getopts :hlFcf:a:s: OPT; do
+    while getopts :hlFvcf:a:s: OPT; do
         case $OPT in
             h)
                 help
                 exit
                 ;;
             F)
-                FORCE_FLAG="true"
+                FORCE_FLAG='true'
                 ;;
             a)
                 LIFESAVER_ARCHIVE="$OPTARG"
                 ;;
             s)
                 MOONRING_SAVE_DIR="$OPTARG"
+                ;;
+            v)
+                echo "Current lifesaver environmental variables are:"
+                echo "MOONRING_SAVE_DIR = $MOONRING_SAVE_DIR"
+                echo "LIFESAVER_ARCHIVE = $LIFESAVER_ARCHIVE"
+                exit
                 ;;
             l)
                 ls "$LIFESAVER_ARCHIVE"

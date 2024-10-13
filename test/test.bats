@@ -9,10 +9,10 @@ load "$BATS_TEST_DIRNAME/.bats/test_helper/bats-file/load.bash"
 setup_file() {
     declare -g PATH BATS_TMPDIR BATS_FILE_TMPDIR
     # Add the project's root dir into $PATH as first
-    PATH="$BATS_TEST_DIRNAME/../:$PATH"
+    PATH=$BATS_TEST_DIRNAME/../:$PATH
     # Assign a base directory for creating temp dirs or files
     # shellcheck disable=2034
-    BATS_TMPDIR="$BATS_TEST_DIRNAME/tmp"
+    BATS_TMPDIR=$BATS_TEST_DIRNAME/tmp
     # Create a temporary directory and assign its path to a variable
     BATS_FILE_TMPDIR="$(temp_make)"
 }
@@ -25,8 +25,8 @@ teardown_file() {
 }
 
 setup() {
-    local -r save_dir="$BATS_FILE_TMPDIR/Moonring" # Must be capitalized
-    local -r archive_dir="$BATS_FILE_TMPDIR/archive"
+    local -r save_dir=$BATS_FILE_TMPDIR/Moonring # Must be capitalized
+    local -r archive_dir=$BATS_FILE_TMPDIR/archive
 
     # Create files moonring/file{1..3} and moonring/save/file{1..3}
     # at $BATS_FILE_TMPDIR
@@ -40,8 +40,8 @@ setup() {
     touch "$archive_dir/already_exists.tar.gz" "$archive_dir/already_exists"
 
     # Declare lifesaver environment variables
-    export MOONRING_SAVE_DIR="$save_dir"
-    export LIFESAVER_ARCHIVE="$archive_dir"
+    export MOONRING_SAVE_DIR=$save_dir
+    export LIFESAVER_ARCHIVE=$archive_dir
 
     # TODO: Fix this hack. Correct lifesaver's environmental info
     # should be used instead
@@ -57,13 +57,13 @@ setup() {
 
 teardown() {
     # Delete the tmpdir contents only
-    # shellcheck disable=2086
-    rm -r ${BATS_FILE_TMPDIR/*:?'BATS_FILE_TMPDIR is unset or null!'}
+    rm -r "${BATS_FILE_TMPDIR/*:?'BATS_FILE_TMPDIR is unset or null!'}"
+    unset MOONRING_SAVE_DIR LIFESAVER_ARCHIVE
 }
 
 @test "test bats setup" {
-    local -r save_dir="$BATS_FILE_TMPDIR/Moonring"
-    local -r archive_dir="$BATS_FILE_TMPDIR/archive"
+    local -r save_dir=$BATS_FILE_TMPDIR/Moonring
+    local -r archive_dir=$BATS_FILE_TMPDIR/archive
     # check for created dirs
     assert_dir_exists "$BATS_FILE_TMPDIR"
     assert_dir_exists "$save_dir/save/"
@@ -148,7 +148,7 @@ teardown() {
 }
 
 @test "test lifesaver -l (list) option" {
-    local -r archive_dir="$BATS_FILE_TMPDIR/archive"
+    local -r archive_dir=$BATS_FILE_TMPDIR/archive
     run lifesaver.sh -a "$archive_dir" -l
     assert_success
     assert_output "$(ls "$archive_dir")"
@@ -157,12 +157,21 @@ teardown() {
 # Note that the -F (--force) option is almos always used, as a way to
 # avoid the need to mock interactive use in testing
 
-@test "test 'lifesaver -f somefile'" {
+@test "test 'lifesaver -Ff somefile'" {
     run lifesaver.sh -Ff somefile.tar.gz
     assert_file_exists "$BATS_FILE_TMPDIR/archive/somefile.tar.gz"
     # Assert that the tarred file's contents are correct
     assert tar --diff \
            --file="$BATS_FILE_TMPDIR/archive/somefile.tar.gz" \
+           --directory="$BATS_FILE_TMPDIR" './Moonring'
+}
+
+@test "test 'lifesaver -Ff already_exists.tar.gz'" {
+    run lifesaver.sh -Ff already_exists.tar.gz
+    assert_file_exists "$BATS_FILE_TMPDIR/archive/already_exists.tar.gz"
+    # Assert that the tarred file's contents are correct
+    assert tar --diff \
+           --file="$BATS_FILE_TMPDIR/archive/already_exists.tar.gz" \
            --directory="$BATS_FILE_TMPDIR" './Moonring'
 }
 
@@ -173,4 +182,12 @@ teardown() {
         -v # Print lifesaver environmental variables values
     assert_output --partial "$BATS_FILE_TMPDIR/Moonring/save/"
     assert_output --partial "$BATS_FILE_TMPDIR/archive2/"
+}
+
+@test "test 'lifesaver -v' with environment variables" {
+    LIFESAVER_ARCHIVE=$BATS_FILE_TMPDIR/archive2/
+    MOONRING_SAVE_DIR=$BATS_FILE_TMPDIR/Moonring/save
+    run lifesaver.sh -v
+    assert_output --partial "$BATS_FILE_TMPDIR/archive2/"
+    assert_output --partial "$BATS_FILE_TMPDIR/Moonring/save"
 }

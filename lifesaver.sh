@@ -7,8 +7,8 @@
 ###
 
 declare -g MOONRING_SAVE_DIR LIFESAVER_ARCHIVE FORCE_FLAG
-MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-"$HOME/.local/share/Moonring/"}
-LIFESAVER_ARCHIVE=${LIFESAVER_ARCHIVE:-"$HOME/bin/moonring/save-files/"}
+MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-~/.local/share/Moonring/}
+LIFESAVER_ARCHIVE=${LIFESAVER_ARCHIVE:-~/bin/moonring/save-files/}
 FORCE_FLAG='false'
 
 ## TODO: lifesaver must validate these constant values
@@ -33,7 +33,7 @@ Lifesaver: manage your Moonring save files.
  -v          Print lifesaver's environmental [v]ariables values.
  -l          [l]ist all files in the archive directory and exit.
  -f FILE     Add current save [f]ile to the archive as FILE.tar.gz
- -c          Choose a save file from the archive to be made the [c]urrent
+ -u          Update current Moonring savefile with one of the archive
              Moonring save file to play with.
 
 EOF
@@ -47,10 +47,10 @@ EOF
 # Ask for confirmation using $message and returns 0 (true) or 1 (false)
 # wheter the user answer with an 'y' or a 'n'.
 function prompt-y-or-n() {
-    local -r message="$*"
+    local -r message=$*
     [[ $# -gt 0 ]] || {
-        echo "lifesaver: Exit with error"
-        echo "promt-y-or-n(): no parameters given"
+        echo "lifesaver: Exit with error" >&2
+        echo "promt-y-or-n(): no parameters given" >&2
         exit 1
     }
 
@@ -75,27 +75,23 @@ function prompt-y-or-n() {
 # Return 0 if succeded or 1 if not. Note that the actual dir is not
 # archived, only its contents.
 function write-tar-file-from-dir() {
-    local target_file="$1"
-    local src_dir="$2"
+    local target_file=$1
+    local src_dir=$2
     [[ $# -eq 2 ]] || {
-        echo "lifesaver: Exit with error"
-        echo "write-tar-file-from-dir(): Need 2 parameters"
+        echo "lifesaver: Exit with error" >&2
+        echo "write-tar-file-from-dir(): Need 2 parameters" >&2
         exit 1
     }
 
-    # TODO: fix this -->
-
-    # Note that "Moonring" lifesaver will not work if the
-    # 'MOONRING_SAVE_DIR is not actually named 'Moonring'
-    # (capitalized)
+    local -r dir_to_tar=$(basename "$src_dir")
     if tar --create --gzip --file="$target_file" \
-           --directory="$src_dir/../" ./Moonring/ >/dev/null 2>&1; then
+           --directory="$src_dir/../" "./$dir_to_tar" >/dev/null 2>&1; then
         echo "File writed at $target_file"
         return 0;
     else
-        echo "Something went wrong when creating $target_file"
-        echo "File couldn't be written correctly or at all."
-        return 1
+        echo "Something went wrong when creating $target_file" >&2
+        echo "File couldn't be written correctly or at all." >&2
+        exit 1
     fi;
 }
 
@@ -105,10 +101,11 @@ function write-tar-file-from-dir() {
 # If user confirms, overwrite it; otherwise echo an "Aborted..."
 # message and return 0. If target_file doesn't exists, just write it.
 function write-tar-file-from-dir-safely() {
-    local target_file="$1"
-    local src_dir="$2"
+    local target_file=$1
+    local src_dir=$2
     [[ $# -eq 2 ]] || {
-        echo "ERROR: write-tar-file-from-dir-safely() -- Needs 2 parameters"
+        echo "lifesaver: Exit with error" >&2
+        echo "write-tar-file-from-dir-safely(): Needs 2 parameters" >&2
         exit 1
     }
 
@@ -133,11 +130,11 @@ function write-tar-file-from-dir-safely() {
 # archive at $target_file, using $save_dir as source. $save_dir is
 # usually $MOONRING_SAVE_DIR, located at "~/.local/share/Moonring/"
 function archive-save-file() {
-    local target_file="$1"
-    local save_dir="$2"
+    local target_file=$1
+    local save_dir=$2
     [[ $# -eq 2 ]] || {
-        echo "lifesaver: Exit with error"
-        echo "archive-save-file(): Needs 2 parameters"
+        echo "lifesaver: Exit with error" >&2
+        echo "archive-save-file(): Needs 2 parameters" >&2
         exit 1
     }
 
@@ -160,8 +157,8 @@ function archive-save-file() {
 # $2 - save file archive
 update-moonring-save-file() {
     [[ $# -eq 0 ]] || {
-        echo "lifesaver: Exit with error"
-        echo "update-moonring-save-file(): 1 argument must be given"
+        echo "lifesaver: Exit with error" >&2
+        echo "update-moonring-save-file(): 1 argument must be given" >&2
     }
 
     echo "$1" >/dev/null 2>&1;
@@ -179,7 +176,7 @@ update-moonring-save-file() {
 ## e.g. "lifesaver -f /path/that/dont/exists"
 
 main() {
-    while getopts :hlFvcf:a:s: OPT; do
+    while getopts :hlFvuf:a:s: OPT; do
         case $OPT in
             h)
                 help
@@ -189,10 +186,10 @@ main() {
                 FORCE_FLAG='true'
                 ;;
             a)
-                LIFESAVER_ARCHIVE="$OPTARG"
+                LIFESAVER_ARCHIVE=$OPTARG
                 ;;
             s)
-                MOONRING_SAVE_DIR="$OPTARG"
+                MOONRING_SAVE_DIR=$OPTARG
                 ;;
             v)
                 echo "Current lifesaver environmental variables are:"
@@ -205,11 +202,11 @@ main() {
                 exit
                 ;;
             f)
-                local -r target_file="$LIFESAVER_ARCHIVE/$OPTARG"
+                local -r target_file=$LIFESAVER_ARCHIVE/$OPTARG
                 archive-save-file "$target_file" "$MOONRING_SAVE_DIR"
                 exit
                 ;;
-            c)
+            u)
                 update-moonring-save-file "$MOONRING_SAVE_DIR"
                 exit
                 ;;
@@ -221,7 +218,7 @@ main() {
             ?)
                 echo "lifesaver: unrecognized option '$1'"
                 echo "Try 'lifesaver -h' for more information."
-               exit 1
+                exit 1
         esac
     done
 

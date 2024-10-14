@@ -33,8 +33,7 @@ Lifesaver: manage your Moonring save files.
  -v          Print lifesaver's environmental [v]ariables values.
  -l          [l]ist all files in the archive directory and exit.
  -f FILE     Add current save [f]ile to the archive as FILE.tar.gz
- -u          Update current Moonring savefile with one of the archive
-             Moonring save file to play with.
+ -u FILE     [u]pdate current Moonring savefile with FILE from the archive.
 
 EOF
 }
@@ -153,16 +152,30 @@ function archive-save-file() {
     fi;
 }
 
-# $1 - moonring save dir
-# $2 - save file archive
-update-moonring-save-file() {
-    [[ $# -eq 0 ]] || {
+
+# $1 - path to savefile to update into current
+# $2 - moonring save dir
+update-moonring-savefile() {
+    local -r savefile=$1
+    local -r save_dir=$2/../ # Target dir where 'MOONRING_SAVE_DIR' is
+                             # located to overwrite 'MOONRING_SAVE_DIR'
+    [[ $# -ne 2 ]] && {
         echo "lifesaver: Exit with error" >&2
-        echo "update-moonring-save-file(): 1 argument must be given" >&2
+        echo "update-moonring-savefile(): 2 arguments must be given" >&2
+        exit 1
     }
 
-    echo "$1" >/dev/null 2>&1;
-    echo "This feature is not yet implemented. Sorry."
+    if [[ -f $savefile ]]; then
+        tar --extract --verbose --file="$savefile" \
+            --directory="$save_dir" || {
+            echo "lifesaver: File couldn't be extracted" >&2
+            exit 1
+        }
+    else
+        echo "lifesaver: Exit with error"
+        echo "$savefile" "couldn't be found"
+        exit 1
+    fi
 }
 
 ###
@@ -176,7 +189,7 @@ update-moonring-save-file() {
 ## e.g. "lifesaver -f /path/that/dont/exists"
 
 main() {
-    while getopts :hlFvuf:a:s: OPT; do
+    while getopts :hlFvu:f:a:s: OPT; do
         case $OPT in
             h)
                 help
@@ -207,29 +220,30 @@ main() {
                 exit
                 ;;
             u)
-                update-moonring-save-file "$MOONRING_SAVE_DIR"
+                local -r file_to_extract=$LIFESAVER_ARCHIVE/$OPTARG
+                update-moonring-savefile "$file_to_extract" "$MOONRING_SAVE_DIR"
                 exit
                 ;;
             :)
-                echo "lifesaver: option -$OPTARG requires an argument"
-                echo "Try 'lifesaver -h' for more information."
+                echo "lifesaver: option -$OPTARG requires an argument" >&2
+                echo "Try 'lifesaver -h' for more information." >&2
                 exit 1
                 ;;
             ?)
-                echo "lifesaver: unrecognized option '$1'"
-                echo "Try 'lifesaver -h' for more information."
+                echo "lifesaver: unrecognized option '$1'" >&2
+                echo "Try 'lifesaver -h' for more information." >&2
                 exit 1
         esac
     done
 
     ## Handle edge cases
     if [[ $# -eq 0 ]] ; then  # No parameter given
-        echo "lifesaver: no option given"
-        echo "Try 'lifesaver -h' for more information."
+        echo "lifesaver: no option given" >&2
+        echo "Try 'lifesaver -h' for more information." >&2
         exit 1;
     else                      # No dash preceding the options
-        echo "lifesaver: unrecognized option '$1'"
-        echo "Try 'lifesaver -h' for more information."
+        echo "lifesaver: unrecognized option '$1'" >&2
+        echo "Try 'lifesaver -h' for more information." >&2
         exit 1;
     fi
 }

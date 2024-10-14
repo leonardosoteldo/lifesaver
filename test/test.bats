@@ -41,7 +41,7 @@ setup() {
     mkdir "$T_ARCHIVE_DIR"
     touch "$T_ARCHIVE_DIR/already_exists.tar.gz" "$T_ARCHIVE_DIR/already_exists"
     mkdir -p "${T_ARCHIVE_DIR}2/Moonring/savefiles"
-    touch "${T_ARCHIVE_DIR}2/Moonringfile"{1..4} \
+    touch "${T_ARCHIVE_DIR}2/Moonring/file"{1..4} \
           "${T_ARCHIVE_DIR}2/Moonring/savefiles/file"{1..4}
 
     # Declare lifesaver environment variables
@@ -168,13 +168,13 @@ teardown() {
 
 @test "test 'lifesaver -s save_dir -u savefile_to_update'" {
     # Create an archive to update not equal to the MOONRING_SAVE_DIR
-    lifesaver.sh -s "$T_ARCHIVE_DIR2" -Ff 'savefile.tar.gz'
+    lifesaver.sh -s "$T_ARCHIVE_DIR2/Moonring" -Ff 'savefile.tar.gz' >/dev/null 2>&1
     # Run the option under test
     run lifesaver.sh -Fu 'savefile.tar.gz'
     assert_success
     # Assert 'MOONRING_SAVE_DIR' got updated with 'savefile.tar.gz'
     # contents
     assert tar --diff \
-           --file="$T_ARCHIVE_DIR/already_exists.tar.gz" \
-           --directory="$BATS_FILE_TMPDIR" './Moonring'
+           --file="$T_ARCHIVE_DIR/savefile.tar.gz" \
+           --directory="$T_SAVE_DIR/.." './Moonring'
 }

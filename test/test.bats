@@ -48,13 +48,11 @@ setup() {
     export MOONRING_SAVE_DIR=$T_SAVE_DIR
     export LIFESAVER_ARCHIVE=$T_ARCHIVE_DIR
 
-
-    # CRITICAL FAIL: if lifesaver ignores the environment variable;
+    # CRITICAL FAIL if lifesaver ignores the environment variable;
     # otherwise user's files may be compromised by testing processes.
     local env_vars save_var archive_var
     env_vars=$(lifesaver.sh -v)
-    # Print the third column of every line containing '/WORD/' from
-    # "$env_vars" used as a here document:
+    # Get values of 'MOONRING_SAVE_DIR' and 'LIFESAVER_ARCHIVE'
     save_var=$(awk '/MOONRING/ {print $3}' <<< "$env_vars")
     archive_var=$(awk '/ARCHIVE/ {print $3}' <<< "$env_vars")
     if [ "$save_var" != "$T_SAVE_DIR" ] || [ "$archive_var" != "$T_ARCHIVE_DIR" ]; then
@@ -70,7 +68,7 @@ teardown() {
     unset MOONRING_SAVE_DIR SAVER_ARCHIVE
 }
 
-@test "test bats setup" {
+@test "test bats setup()" {
     # check for created dirs
     assert_dir_exists "$BATS_FILE_TMPDIR"
     assert_dir_exists "$T_SAVE_DIR/save/"
@@ -80,11 +78,18 @@ teardown() {
     assert_file_exists "$T_SAVE_DIR/file2"
     assert_file_exists "$T_SAVE_DIR/save/file2"
     assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
-    # create some file for testing teardown in subsequent test
-    touch "$BATS_FILE_TMPDIR/some-file"
     # Test the testing setup of environment variables of lifesaver
     assert [ "$MOONRING_SAVE_DIR" == "$T_SAVE_DIR" ]
     assert [ "$LIFESAVER_ARCHIVE" == "$T_ARCHIVE_DIR" ]
+
+    # create some file for testing teardown() in the next test
+    touch "$BATS_FILE_TMPDIR/some-file"
+}
+
+@test "test teardown()" {
+    # This file was created by the test before this and should not
+    # exist as 'teardown()' should delete it
+    assert_file_not_exist "$BATS_FILE_TMPDIR/some-file"
 }
 
 @test "test lifesaver edge cases input handling" {
@@ -141,40 +146,40 @@ teardown() {
     run lifesaver.sh -Ff already_exists.tar.gz
     assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
     # Assert that the tarred file's contents are correct
+    local -r save_dir_name=$(basename "$T_SAVE_DIR")
     assert tar --diff \
            --file="$T_ARCHIVE_DIR/already_exists.tar.gz" \
-           --directory="$BATS_FILE_TMPDIR" './Moonring'
+           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
 }
 
 @test "test 'lifesaver -s save_dir -a archive_dir -v'" {
     run lifesaver.sh \
         -s "$T_SAVE_DIR/save/" \
         -a "$T_ARCHIVE_DIR2/" \
-        -v # Print lifesaver environmental variables values
+        -v
     assert_output --partial "$T_SAVE_DIR/save/"
     assert_output --partial "$T_ARCHIVE_DIR2/"
 
     # Test if environment variables are unchanged (this must be in the
-    # same test function, to test that -a nor -s mutates the state.)
+    # same test, to assure that -a nor -s don't mutate shell state.)
     local env_vars save_dir archive_dir
     env_vars=$(lifesaver.sh -v)
     # Print the 3º column of lines matching '/WORD/' in 'env_vars'
     save_dir=$(awk '/MOONRING/ {print $3}' <<< "$env_vars")
     archive_dir=$(awk '/ARCHIVE/ {print $3}' <<< "$env_vars")
-    # Compare this values against the values of environmental vars
+    # Compare this values against the values of testing env vars
     assert [ "$archive_dir" == "$T_ARCHIVE_DIR" ]
     assert [ "$save_dir" == "$T_SAVE_DIR" ]
 }
 
 @test "test 'lifesaver -s save_dir -u savefile_to_update'" {
-    # Create an archive to update not equal to the MOONRING_SAVE_DIR
+    # Create an archive to update different than MOONRING_SAVE_DIR
     lifesaver.sh -s "$T_ARCHIVE_DIR2/Moonring" -Ff 'savefile.tar.gz' >/dev/null 2>&1
-    # Run the option under test
     run lifesaver.sh -Fu 'savefile.tar.gz'
     assert_success
-    # Assert 'MOONRING_SAVE_DIR' got updated with 'savefile.tar.gz'
-    # contents
+    # Assert the current savefile was updated correctly
+    local -r save_dir_name=$(basename "$T_SAVE_DIR")
     assert tar --diff \
            --file="$T_ARCHIVE_DIR/savefile.tar.gz" \
-           --directory="$T_SAVE_DIR/.." './Moonring'
+           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
 }

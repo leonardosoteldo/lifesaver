@@ -18,7 +18,7 @@ FORCE_FLAG='false'
 ###
 
 function help(){
-    cat << EOF
+    cat << END_OF_USAGE
 
 Lifesaver: manage your Moonring save files.
 
@@ -35,7 +35,7 @@ Lifesaver: manage your Moonring save files.
  -f FILE     Add current save [f]ile to the archive as FILE.tar.gz
  -u FILE     [u]pdate current Moonring savefile with FILE from the archive.
 
-EOF
+END_OF_USAGE
 }
 
 ###

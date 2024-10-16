@@ -132,27 +132,11 @@ teardown() {
     assert_line --index 0 "Lifesaver: manage your Moonring save files."
 }
 
-@test "test 'lifesaver -l'" {
-    run lifesaver.sh -a "$T_ARCHIVE_DIR" -l
-    assert_success
-    assert_output --partial "$(ls --color=never "$T_ARCHIVE_DIR")"
-}
+### '-v' (print variables) option
+######################################################################
 
-# Note that the -F (--force) option is almos always used, as a way to
-# avoid the need to mock interactive use in testing
-
-# As -F is used saving a new file and overwriting is the same action
-@test "test 'lifesaver -Ff already_exists.tar.gz'" {
-    run lifesaver.sh -Ff already_exists.tar.gz
-    assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
-    # Assert that the tarred file's contents are correct
-    local -r save_dir_name=$(basename "$T_SAVE_DIR")
-    assert tar --diff \
-           --file="$T_ARCHIVE_DIR/already_exists.tar.gz" \
-           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
-}
-
-@test "test 'lifesaver -s save_dir -a archive_dir -v'" {
+@test "test '-v' option" {
+    # the '-F' is used to avoid validations that will fail the test
     run lifesaver.sh \
         -s "$T_SAVE_DIR/save/" \
         -a "$T_ARCHIVE_DIR2/" \
@@ -172,7 +156,49 @@ teardown() {
     assert [ "$save_dir" == "$T_SAVE_DIR" ]
 }
 
-@test "test 'lifesaver -s save_dir -u savefile_to_update'" {
+@test "test '-v' option bad input handling" {
+    local -r non_existant_dir=$BATS_FILE_TMPDIR/this_dont_exist/
+    local -r not_a_dir=$T_ARCHIVE_DIR/already_exists.tar.gz
+    refute lifesaver.sh -a "$non_existant_dir" -v
+    refute lifesaver.sh -s "$non_existant_dir" -v
+    refute lifesaver.sh -a "$not_a_dir" -v
+    refute lifesaver.sh -s "$not_a_dir" -v
+}
+
+### '-l' (list archive dir) option
+######################################################################
+
+@test "test '-l' option" {
+    run lifesaver.sh -a "$T_ARCHIVE_DIR" -l
+    assert_success
+    assert_output --partial "$(ls --color=never "$T_ARCHIVE_DIR")"
+}
+
+@test "test '-l' option bad input handling" {
+    local -r non_existant_dir=$BATS_FILE_TMPDIR/this_dont_exist/
+    local -r not_a_dir=$T_ARCHIVE_DIR/already_exists.tar.gz
+    refute lifesaver.sh -a "$non_existant_dir" -l
+    refute lifesaver.sh -a "$not_a_dir" -l
+}
+
+### '-f' (archive save dir) option
+######################################################################
+
+# As -F is used saving a new file and overwriting is the same action
+@test "test '-f' option" {
+    run lifesaver.sh -Ff already_exists.tar.gz
+    assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
+    # Assert that the tarred file's contents are correct
+    local -r save_dir_name=$(basename "$T_SAVE_DIR")
+    assert tar --diff \
+           --file="$T_ARCHIVE_DIR/already_exists.tar.gz" \
+           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
+}
+
+### '-u' (update current save dir) option
+######################################################################
+
+@test "test '-u' option" {
     # Create an archive to update different than MOONRING_SAVE_DIR
     lifesaver.sh -s "$T_ARCHIVE_DIR2/Moonring" -Ff 'savefile.tar.gz' >/dev/null 2>&1
     run lifesaver.sh -Fu 'savefile.tar.gz'

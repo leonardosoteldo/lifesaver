@@ -86,26 +86,55 @@ function prompt-y-or-n() {
     done;
 }
 
-### -l option (list content of 'LIFESAVER_ARCHIVE_DIR')
-######################################################################
+# Validate that 'LIFESAVER_ARCHIVE_DIR' are bound to an existent and
+# valid directory, exiting with '1' if not.
+function validate-archive-dir {
+    local -r archive_dir_nonexistant="lifesaver archive directory cannot be found
+Try using the '-a' option or binding the 'LIFESAVER_ARCHIVE_DIR' environment variable"
+    local -r archive_dir_wrong_file="lifesaver archive directory cannot be found
+Try using the '-a' option or binding the 'LIFESAVER_ARCHIVE_DIR' environment variable"
 
-# $1 = archive directory
-function list-archive() {
-    local -r archive_dir=$LIFESAVER_ARCHIVE_DIR
-    [[ $# -eq 1 ]] || error-exit 1 "need 1 argument"
+    if [[ ! -e $LIFESAVER_ARCHIVE_DIR ]]; then
+        error-exit 1 "$archive_dir_nonexistant"
+    elif [[ ! -d $LIFESAVER_ARCHIVE_DIR ]]; then
+        error-exit 1 "$archive_dir_wrong_file"
+    fi
+}
 
-    echo "Current lifesaver archive is: $archive_dir"
-    echo -e "Its contents are:\n"
-    ls --color=never "$archive_dir"
+# Validate that 'MOONRING_SAVE_DIR' are bound to an existent and
+# valid directory, exiting with '1' if not.
+function validate-save-dir {
+    local -r save_dir_nonexistant="Moonring save directory cannot be found
+Try using the '-s' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+    local -r save_dir_wrong_file="Specified Moonring save directory file is not a directory
+Try using the '-s' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+
+    if [[ ! -e $MOONRING_SAVE_DIR ]]; then
+        error-exit 1 "$save_dir_nonexistant"
+    elif [[ ! -d $MOONRING_SAVE_DIR ]]; then
+        error-exit 1 "$save_dir_wrong_file"
+    fi
 }
 
 ### -v option (print environmental variables of lifesaver)
 ######################################################################
 
 function print-variables() {
+    validate-archive-dir
+    validate-save-dir
     echo "Current lifesaver environmental variables are:"
     echo "MOONRING_SAVE_DIR = $MOONRING_SAVE_DIR"
     echo "LIFESAVER_ARCHIVE_DIR = $LIFESAVER_ARCHIVE_DIR"
+}
+
+### -l option (list content of 'LIFESAVER_ARCHIVE_DIR')
+######################################################################
+
+function list-archive() {
+    validate-archive-dir
+    echo "Current lifesaver archive is: $LIFESAVER_ARCHIVE_DIR"
+    echo -e "Its contents are:\n"
+    ls --color=never "$LIFESAVER_ARCHIVE_DIR"
 }
 
 ### -f option (archive current 'MOONRING_SAVE_DIR')
@@ -129,7 +158,7 @@ function compress-dir() {
         local -r err_message="Something went wrong when creating $target_file
 ${FUNCNAME[0]} File couldn't be written correctly or at all"
         error-exit 1 "$err_message"
-    fi;
+    fi
 }
 
 # $1 = target_file to write
@@ -148,10 +177,10 @@ function compress-dir-safely() {
             compress-dir "$target_file" "$src_dir"
         else
             echo "Aborted by the user"
-        fi;
+        fi
     else
         compress-dir "$target_file" "$src_dir"
-    fi;
+    fi
 }
 
 # $1 = target_file to write to
@@ -174,7 +203,7 @@ function archive-savefile() {
         else
             echo "Aborted by the user"
         fi
-    fi;
+    fi
 }
 
 ### -u option (update 'MOONRING_SAVE_DIR' with savefile from 'LIFESAVER_ARCHIVE_DIR')
@@ -278,11 +307,11 @@ function main() {
     if [[ $# -eq 0 ]] ; then  # No argument given
         echo "lifesaver: no option given" >&2
         echo "Try 'lifesaver -h' for more information." >&2
-        exit 1;
+        exit 1
     else                      # No dash preceding the options
         echo "lifesaver: unrecognized option '$1'" >&2
         echo "Try 'lifesaver -h' for more information." >&2
-        exit 1;
+        exit 1
     fi
 }
 

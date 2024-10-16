@@ -42,16 +42,39 @@ END_OF_USAGE
 ### Functions definitions
 ###
 
+# $1 = Number of exit status (must be a positive integer)
+# ${*:2} = (rest of args) Message to stderr
+#
+# Exit with exit status error number '$1' and messaging to stderr:
+#   > shell_script: fatal error
+#   > caller_function: ${*:2}
+#
+# This functon exit with error (1) if an invalid shell exit status is
+# used as its first argument ('$1'.) Exit statuses must be integers
+# between 1 and 255 (both inclusive.)
+function error-exit() {
+    local -r exit_status=$1
+    local -r err_message=${*:2}
+    local -r caller_func=${FUNCNAME[1]}
+    local -r caller_script=$0
+    # Ensure 'exit_status' is a valid shell exit status (1 to 255)
+    local -r regex='^[0-9]+$' # Avoids potential backwards compatibility errors
+    if [[ ! $exit_status =~ $regex || $exit_status -le 0 || $exit_status -gt 255 ]]; then
+        echo "$caller_script: fatal error" >&2
+        echo "error-exit(): argument '\$1' must be an integer between 1 and 255 (both inclusive)" >&2
+        exit 1
+    fi
+    echo "$caller_script: fatal error"
+    echo "$caller_func(): ${err_message:-exited with fatal error}"
+    exit "$exit_status"
+}
+
 # $* = message to prompt the user
 # Ask for confirmation using $message and returns 0 (true) or 1 (false)
 # wheter the user answer with an 'y' or a 'n'.
 function prompt-y-or-n() {
     local -r message=$*
-    [[ $# -gt 0 ]] || {
-        echo "lifesaver: Exit with error" >&2
-        echo "promt-y-or-n(): no parameters given" >&2
-        exit 1
-    }
+    [[ $# -gt 0 ]] || { error-exit 1 "no arguments given"; }
 
     read -rp "$message " prompt;
     while true; do
@@ -76,11 +99,7 @@ function prompt-y-or-n() {
 function write-tar-file-from-dir() {
     local target_file=$1
     local src_dir=$2
-    [[ $# -eq 2 ]] || {
-        echo "lifesaver: Exit with error" >&2
-        echo "write-tar-file-from-dir(): Need 2 parameters" >&2
-        exit 1
-    }
+    [[ $# -eq 2 ]] || { error-exit 1 "need 2 arguments"; }
 
     local -r dir_to_tar=$(basename "$src_dir")
     if tar --create --gzip --file="$target_file" \
@@ -102,11 +121,7 @@ function write-tar-file-from-dir() {
 function write-tar-file-from-dir-safely() {
     local target_file=$1
     local src_dir=$2
-    [[ $# -eq 2 ]] || {
-        echo "lifesaver: Exit with error" >&2
-        echo "write-tar-file-from-dir-safely(): Needs 2 parameters" >&2
-        exit 1
-    }
+    [[ $# -eq 2 ]] || { error-exit 1 "needs 2 arguments"; }
 
     if [[ -e $target_file ]]; then
         echo "File $target_file already exists!"
@@ -131,11 +146,7 @@ function write-tar-file-from-dir-safely() {
 function archive-save-file() {
     local target_file=$1
     local save_dir=$2
-    [[ $# -eq 2 ]] || {
-        echo "lifesaver: Exit with error" >&2
-        echo "archive-save-file(): Needs 2 parameters" >&2
-        exit 1
-    }
+    [[ $# -eq 2 ]] || { error-exit 1 "needs 2 arguments"; }
 
     if $FORCE_FLAG; then
        write-tar-file-from-dir "$target_file" "$MOONRING_SAVE_DIR";
@@ -159,11 +170,7 @@ update-moonring-savefile() {
     local -r savefile=$1
     local -r save_dir=$2/../ # Target dir where 'MOONRING_SAVE_DIR' is
                              # located to overwrite 'MOONRING_SAVE_DIR'
-    [[ $# -ne 2 ]] && {
-        echo "lifesaver: Exit with error" >&2
-        echo "update-moonring-savefile(): 2 arguments must be given" >&2
-        exit 1
-    }
+    [[ $# -ne 2 ]] && { error-exit 1 "2 argument must be given" ; }
 
     if [[ -f $savefile ]]; then
         tar --extract --verbose --file="$savefile" \
@@ -237,7 +244,7 @@ main() {
     done
 
     ## Handle edge cases
-    if [[ $# -eq 0 ]] ; then  # No parameter given
+    if [[ $# -eq 0 ]] ; then  # No argument given
         echo "lifesaver: no option given" >&2
         echo "Try 'lifesaver -h' for more information." >&2
         exit 1;

@@ -132,7 +132,7 @@ teardown() {
     assert_line --index 0 "Lifesaver: manage your Moonring save files."
 }
 
-@test "test lifesaver -l (list) option" {
+@test "test 'lifesaver -l'" {
     run lifesaver.sh -a "$T_ARCHIVE_DIR" -l
     assert_success
     assert_output "$(ls "$T_ARCHIVE_DIR")"

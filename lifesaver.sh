@@ -61,7 +61,7 @@ function error-exit() {
     local -r regex='^[0-9]+$' # Avoids potential backwards compatibility errors
     if [[ ! $exit_status =~ $regex || $exit_status -le 0 || $exit_status -gt 255 ]]; then
         echo "$caller_script: fatal error" >&2
-        echo "error-exit(): argument '\$1' must be an integer between 1 and 255 (both inclusive)" >&2
+        echo -e "error-exit(): argument '\$1' must be an integer between 1 and 255 (both inclusive)" >&2
         exit 1
     fi
     echo "$caller_script: fatal error"
@@ -74,7 +74,7 @@ function error-exit() {
 # wheter the user answer with an 'y' or a 'n'.
 function prompt-y-or-n() {
     local -r message=$*
-    [[ $# -gt 0 ]] || { error-exit 1 "no arguments given"; }
+    [[ $# -gt 0 ]] || error-exit 1 "no arguments given"
 
     read -rp "$message " prompt;
     while true; do
@@ -99,17 +99,16 @@ function prompt-y-or-n() {
 function write-tar-file-from-dir() {
     local target_file=$1
     local src_dir=$2
-    [[ $# -eq 2 ]] || { error-exit 1 "need 2 arguments"; }
+    [[ $# -eq 2 ]] || error-exit 1 "need 2 arguments"
 
     local -r dir_to_tar=$(basename "$src_dir")
     if tar --create --gzip --file="$target_file" \
            --directory="$src_dir/../" "./$dir_to_tar" >/dev/null 2>&1; then
         echo "File writed at $target_file"
-        return 0;
     else
-        echo "Something went wrong when creating $target_file" >&2
-        echo "File couldn't be written correctly or at all." >&2
-        exit 1
+        local -r err_message="Something went wrong when creating $target_file
+${FUNCNAME[0]} File couldn't be written correctly or at all"
+        error-exit 1 "$err_message"
     fi;
 }
 
@@ -121,20 +120,17 @@ function write-tar-file-from-dir() {
 function write-tar-file-from-dir-safely() {
     local target_file=$1
     local src_dir=$2
-    [[ $# -eq 2 ]] || { error-exit 1 "needs 2 arguments"; }
+    [[ $# -eq 2 ]] || error-exit 1 "needs 2 arguments"
 
     if [[ -e $target_file ]]; then
         echo "File $target_file already exists!"
         if prompt-y-or-n "Do you want to overwrite it? [y/n] "; then
             write-tar-file-from-dir "$target_file" "$src_dir"
-            return;
         else
-            echo "Aborted by the user."
-            return 0
+            echo "Aborted by the user"
         fi;
     else
         write-tar-file-from-dir "$target_file" "$src_dir"
-        return
     fi;
 }
 
@@ -143,46 +139,55 @@ function write-tar-file-from-dir-safely() {
 # Archive the current save file of Moonring game. Create a .tar.gz
 # archive at $target_file, using $save_dir as source. $save_dir is
 # usually $MOONRING_SAVE_DIR, located at "~/.local/share/Moonring/"
-function archive-save-file() {
+function archive-savefile() {
     local target_file=$1
     local save_dir=$2
-    [[ $# -eq 2 ]] || { error-exit 1 "needs 2 arguments"; }
+    [[ $# -eq 2 ]] || error-exit 1 "needs 2 arguments"
 
     if $FORCE_FLAG; then
        write-tar-file-from-dir "$target_file" "$MOONRING_SAVE_DIR";
     else
         echo "A new save file will be writen at:"
-        echo "    $target_file"
+        echo "$target_file"
         if prompt-y-or-n "Are you sure you want to proceed? [y/n] "; then
             write-tar-file-from-dir-safely "$target_file" "$save_dir"
-            return;
         else
-            echo "Aborted by the user."
-            return 0;
+            echo "Aborted by the user"
         fi
     fi;
 }
 
+# $1 = compressed_dir to be extracted
+# $2 = target_dir into which extract the compressed dir
+# Extract a tar (gzip) compressed directory 'compressed_dir' into
+# 'target_dir', without asking for confirmation when overwriting
+extract-dir() {
+    local -r compressed_dir=$1
+    local -r target_dir=$2
+    [[ $# -ne 2 ]] && error-exit 1 "2 arguments must be given"
 
-# $1 - path to savefile to update into current
-# $2 - moonring save dir
-update-moonring-savefile() {
-    local -r savefile=$1
-    local -r save_dir=$2/../ # Target dir where 'MOONRING_SAVE_DIR' is
-                             # located to overwrite 'MOONRING_SAVE_DIR'
-    [[ $# -ne 2 ]] && { error-exit 1 "2 argument must be given" ; }
+    # TODO: remove input validation from here. The only error handling
+    # here should be if tar exits something else than '0'
 
-    if [[ -f $savefile ]]; then
-        tar --extract --verbose --file="$savefile" \
-            --directory="$save_dir" || {
-            echo "lifesaver: File couldn't be extracted" >&2
-            exit 1
-        }
+    if [[ -f $compressed_dir ]]; then
+        tar --extract --file="$compressed_dir" --directory="$target_dir" >/dev/null 2>&1 \
+            || error-exit 1 "tar couldn't extract $compressed_dir"
     else
-        echo "lifesaver: Exit with error"
-        echo "$savefile" "couldn't be found"
-        exit 1
+        error-exit 1 "$compressed_dir couldn't be found"
     fi
+}
+
+# $1 - path to archived (tar gziped) savefile to update into current
+# $2 - moonring save dir
+update-save-dir() {
+    local -r savefile=$1
+    local -r save_dir=$2/../ # Overwrite 'MOONRING_SAVE_DIR'
+    [[ $# -ne 2 ]] && error-exit 1 "2 arguments must be given"
+
+    # TODO: add user verification step so the dir to be overwriten is
+    # explicitly showed
+
+    extract-dir "$savefile" "$save_dir"
 }
 
 ###
@@ -211,6 +216,15 @@ main() {
             s)
                 MOONRING_SAVE_DIR=$OPTARG
                 ;;
+
+            # TODO: the next options (-vlfu) are the possible
+            # actionable outcomes of the 'lifesaver' application. It's
+            # proper to abstract them cleaning this case statement the
+            # most possible, and add input validation to the
+            # abstracted procedure/functions.
+
+            # TODO: add test cases for possible invalid input cases.
+
             v)
                 echo "Current lifesaver environmental variables are:"
                 echo "MOONRING_SAVE_DIR = $MOONRING_SAVE_DIR"
@@ -223,12 +237,12 @@ main() {
                 ;;
             f)
                 local -r target_file=$LIFESAVER_ARCHIVE/$OPTARG
-                archive-save-file "$target_file" "$MOONRING_SAVE_DIR"
+                archive-savefile "$target_file" "$MOONRING_SAVE_DIR"
                 exit
                 ;;
             u)
-                local -r file_to_extract=$LIFESAVER_ARCHIVE/$OPTARG
-                update-moonring-savefile "$file_to_extract" "$MOONRING_SAVE_DIR"
+                local -r compressed_dir=$LIFESAVER_ARCHIVE/$OPTARG
+                update-save-dir "$compressed_dir" "$MOONRING_SAVE_DIR"
                 exit
                 ;;
             :)

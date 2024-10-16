@@ -184,14 +184,19 @@ function compress-dir-safely() {
 }
 
 # $1 = target_file to write to
-# $2 = save_dir to tar
 # Archive the current save file of Moonring game. Create a .tar.gz
-# archive at $target_file, using $save_dir as source. $save_dir is
-# usually $MOONRING_SAVE_DIR, located at "~/.local/share/Moonring/"
+# archive at $target_file, using $MOONRING_SAVE_DIR as source
 function archive-savefile() {
-    local target_file=$1
-    local save_dir=$2
-    [[ $# -eq 2 ]] || error-exit 1 "needs 2 arguments"
+    local -r filename=$1
+    local -r target_file=${LIFESAVER_ARCHIVE_DIR:-./}/$filename
+    local -r target_dir=$(dirname "$target_file") # 'filename' may be a path...
+    [[ $# -eq 1 ]] || error-exit 1 "needs 1 argument"
+
+    if [[ ! -e $target_dir || ! -d $target_dir ]]; then
+        error-exit 1 "$target_file is not a valid location to save a file
+Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+    fi
+    validate-save-dir
 
     if $FORCE_FLAG; then
        compress-dir "$target_file" "$MOONRING_SAVE_DIR";
@@ -199,7 +204,7 @@ function archive-savefile() {
         echo "A new save file will be writen at:"
         echo "$target_file"
         if prompt-y-or-n "Are you sure you want to proceed? [y/n] "; then
-            compress-dir-safely "$target_file" "$save_dir"
+            compress-dir-safely "$target_file" "$MOONRING_SAVE_DIR"
         else
             echo "Aborted by the user"
         fi
@@ -278,12 +283,11 @@ function main() {
                 exit
                 ;;
             l)
-                list-archive "$LIFESAVER_ARCHIVE_DIR"
+                list-archive
                 exit
                 ;;
             f)
-                local -r target_file=$LIFESAVER_ARCHIVE_DIR/$OPTARG
-                archive-savefile "$target_file" "$MOONRING_SAVE_DIR"
+                archive-savefile "$OPTARG"
                 exit
                 ;;
             u)

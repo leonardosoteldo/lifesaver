@@ -39,7 +39,9 @@ setup() {
     # Create files archive/already_exists.tar.gz and archive/already_exists
     # at $BATS_FILE_TMPDIR
     mkdir "$T_ARCHIVE_DIR"
-    touch "$T_ARCHIVE_DIR/already_exists.tar.gz" "$T_ARCHIVE_DIR/already_exists"
+    touch "$T_ARCHIVE_DIR/already_exists"
+    tar -czf "$T_ARCHIVE_DIR/already_exists.tar.gz" \
+        "$T_ARCHIVE_DIR/already_exists" >/dev/null 2>&1
     mkdir -p "${T_ARCHIVE_DIR}2/Moonring/savefiles"
     touch "${T_ARCHIVE_DIR}2/Moonring/file"{1..4} \
           "${T_ARCHIVE_DIR}2/Moonring/savefiles/file"{1..4}
@@ -163,6 +165,9 @@ teardown() {
     refute lifesaver.sh -s "$non_existant_dir" -v
     refute lifesaver.sh -a "$not_a_dir" -v
     refute lifesaver.sh -s "$not_a_dir" -v
+    # To check some of the actual output
+    run lifesaver.sh -a "$non_existant_dir" -v
+    assert_output --partial "cannot be found"
 }
 
 ### '-l' (list archive dir) option
@@ -179,6 +184,9 @@ teardown() {
     local -r not_a_dir=$T_ARCHIVE_DIR/already_exists.tar.gz
     refute lifesaver.sh -a "$non_existant_dir" -l
     refute lifesaver.sh -a "$not_a_dir" -l
+    # To check some of the actual outputs
+    run lifesaver.sh -a "$non_existant_dir" -l
+    assert_output --partial "cannot be found"
 }
 
 ### '-f' (archive save dir) option
@@ -194,6 +202,20 @@ teardown() {
            --file="$T_ARCHIVE_DIR/already_exists.tar.gz" \
            --directory="$T_SAVE_DIR/.." "./$save_dir_name"
 }
+
+@test "test '-f' option bad input handling" {
+    local -r non_existant_dir=$BATS_FILE_TMPDIR/this_dont_exist/
+    local -r not_a_dir=$T_ARCHIVE_DIR/already_exists.tar.gz
+    refute lifesaver.sh -Ff # no argument
+    refute lifesaver.sh -a "$non_existant_dir" -Ff 'some_file'
+    refute lifesaver.sh -s "$non_existant_dir" -Ff 'some_file'
+    refute lifesaver.sh -a "$not_a_dir" -Ff "$not_a_dir"
+    refute lifesaver.sh -s "$not_a_dir" -Ff "$not_a_dir"
+    # To check some of the actual outputs
+    run lifesaver.sh -a "$non_existant_dir" -Ff 'some_file'
+    assert_output --partial "not a valid location"
+}
+
 
 ### '-u' (update current save dir) option
 ######################################################################

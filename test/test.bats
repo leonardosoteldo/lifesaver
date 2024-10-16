@@ -46,13 +46,13 @@ setup() {
 
     # Declare lifesaver environment variables
     export MOONRING_SAVE_DIR=$T_SAVE_DIR
-    export LIFESAVER_ARCHIVE=$T_ARCHIVE_DIR
+    export LIFESAVER_ARCHIVE_DIR=$T_ARCHIVE_DIR
 
     # CRITICAL FAIL if lifesaver ignores the environment variable;
     # otherwise user's files may be compromised by testing processes.
     local env_vars save_var archive_var
     env_vars=$(lifesaver.sh -v)
-    # Get values of 'MOONRING_SAVE_DIR' and 'LIFESAVER_ARCHIVE'
+    # Get values of 'MOONRING_SAVE_DIR' and 'LIFESAVER_ARCHIVE_DIR'
     save_var=$(awk '/MOONRING/ {print $3}' <<< "$env_vars")
     archive_var=$(awk '/ARCHIVE/ {print $3}' <<< "$env_vars")
     if [ "$save_var" != "$T_SAVE_DIR" ] || [ "$archive_var" != "$T_ARCHIVE_DIR" ]; then
@@ -80,7 +80,7 @@ teardown() {
     assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
     # Test the testing setup of environment variables of lifesaver
     assert [ "$MOONRING_SAVE_DIR" == "$T_SAVE_DIR" ]
-    assert [ "$LIFESAVER_ARCHIVE" == "$T_ARCHIVE_DIR" ]
+    assert [ "$LIFESAVER_ARCHIVE_DIR" == "$T_ARCHIVE_DIR" ]
 
     # create some file for testing teardown() in the next test
     touch "$BATS_FILE_TMPDIR/some-file"
@@ -135,7 +135,7 @@ teardown() {
 @test "test 'lifesaver -l'" {
     run lifesaver.sh -a "$T_ARCHIVE_DIR" -l
     assert_success
-    assert_output "$(ls "$T_ARCHIVE_DIR")"
+    assert_output --partial "$(ls --color=never "$T_ARCHIVE_DIR")"
 }
 
 # Note that the -F (--force) option is almos always used, as a way to

@@ -2,20 +2,16 @@
 
 # Bash script for managing Moonring save files
 
-###
 ### Constants definition
-###
+######################################################################
 
-declare -g MOONRING_SAVE_DIR LIFESAVER_ARCHIVE FORCE_FLAG
+declare -g MOONRING_SAVE_DIR LIFESAVER_ARCHIVE_DIR FORCE_FLAG
 MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-~/.local/share/Moonring/}
-LIFESAVER_ARCHIVE=${LIFESAVER_ARCHIVE:-~/bin/moonring/save-files/}
+LIFESAVER_ARCHIVE_DIR=${LIFESAVER_ARCHIVE_DIR:-~/bin/moonring/save-files/}
 FORCE_FLAG='false'
 
-## TODO: lifesaver must validate these constant values
-
-###
 ### Help function
-###
+######################################################################
 
 function help(){
     cat << END_OF_USAGE
@@ -38,9 +34,8 @@ Lifesaver: manage your Moonring save files.
 END_OF_USAGE
 }
 
-###
-### Functions definitions
-###
+### Common functions
+######################################################################
 
 # $1 = Number of exit status (must be a positive integer)
 # ${*:2} = (rest of args) Message to stderr
@@ -57,7 +52,7 @@ function error-exit() {
     local -r err_message=${*:2}
     local -r caller_func=${FUNCNAME[1]}
     local -r caller_script=$0
-    # Ensure 'exit_status' is a valid shell exit status (1 to 255)
+    # Ensure 'exit_status' is a valid shell exit status (1 to 255 int)
     local -r regex='^[0-9]+$' # Avoids potential backwards compatibility errors
     if [[ ! $exit_status =~ $regex || $exit_status -le 0 || $exit_status -gt 255 ]]; then
         echo "$caller_script: fatal error" >&2
@@ -91,12 +86,37 @@ function prompt-y-or-n() {
     done;
 }
 
+### -l option (list content of 'LIFESAVER_ARCHIVE_DIR')
+######################################################################
+
+# $1 = archive directory
+function list-archive() {
+    local -r archive_dir=$LIFESAVER_ARCHIVE_DIR
+    [[ $# -eq 1 ]] || error-exit 1 "need 1 argument"
+
+    echo "Current lifesaver archive is: $archive_dir"
+    echo -e "Its contents are:\n"
+    ls --color=never "$archive_dir"
+}
+
+### -v option (print environmental variables of lifesaver)
+######################################################################
+
+function print-variables() {
+    echo "Current lifesaver environmental variables are:"
+    echo "MOONRING_SAVE_DIR = $MOONRING_SAVE_DIR"
+    echo "LIFESAVER_ARCHIVE_DIR = $LIFESAVER_ARCHIVE_DIR"
+}
+
+### -f option (archive current 'MOONRING_SAVE_DIR')
+######################################################################
+
 # $1 = target_file to write
 # $2 = src_dir to archive with tar
 # Create a .tar.gz archive of src_dir located at target_file
 # Return 0 if succeded or 1 if not. Note that the actual dir is not
 # archived, only its contents.
-function write-tar-file-from-dir() {
+function compress-dir() {
     local target_file=$1
     local src_dir=$2
     [[ $# -eq 2 ]] || error-exit 1 "need 2 arguments"
@@ -117,7 +137,7 @@ ${FUNCNAME[0]} File couldn't be written correctly or at all"
 # Prompt the user for confirmation if target_file already exists.
 # If user confirms, overwrite it; otherwise echo an "Aborted..."
 # message and return 0. If target_file doesn't exists, just write it.
-function write-tar-file-from-dir-safely() {
+function compress-dir-safely() {
     local target_file=$1
     local src_dir=$2
     [[ $# -eq 2 ]] || error-exit 1 "needs 2 arguments"
@@ -125,12 +145,12 @@ function write-tar-file-from-dir-safely() {
     if [[ -e $target_file ]]; then
         echo "File $target_file already exists!"
         if prompt-y-or-n "Do you want to overwrite it? [y/n] "; then
-            write-tar-file-from-dir "$target_file" "$src_dir"
+            compress-dir "$target_file" "$src_dir"
         else
             echo "Aborted by the user"
         fi;
     else
-        write-tar-file-from-dir "$target_file" "$src_dir"
+        compress-dir "$target_file" "$src_dir"
     fi;
 }
 
@@ -145,29 +165,32 @@ function archive-savefile() {
     [[ $# -eq 2 ]] || error-exit 1 "needs 2 arguments"
 
     if $FORCE_FLAG; then
-       write-tar-file-from-dir "$target_file" "$MOONRING_SAVE_DIR";
+       compress-dir "$target_file" "$MOONRING_SAVE_DIR";
     else
         echo "A new save file will be writen at:"
         echo "$target_file"
         if prompt-y-or-n "Are you sure you want to proceed? [y/n] "; then
-            write-tar-file-from-dir-safely "$target_file" "$save_dir"
+            compress-dir-safely "$target_file" "$save_dir"
         else
             echo "Aborted by the user"
         fi
     fi;
 }
 
+### -u option (update 'MOONRING_SAVE_DIR' with savefile from 'LIFESAVER_ARCHIVE_DIR')
+######################################################################
+
 # $1 = compressed_dir to be extracted
 # $2 = target_dir into which extract the compressed dir
 # Extract a tar (gzip) compressed directory 'compressed_dir' into
 # 'target_dir', without asking for confirmation when overwriting
-extract-dir() {
+function extract-dir() {
     local -r compressed_dir=$1
     local -r target_dir=$2
     [[ $# -ne 2 ]] && error-exit 1 "2 arguments must be given"
 
     # TODO: remove input validation from here. The only error handling
-    # here should be if tar exits something else than '0'
+    # here should be if tar returns something else than '0'
 
     if [[ -f $compressed_dir ]]; then
         tar --extract --file="$compressed_dir" --directory="$target_dir" >/dev/null 2>&1 \
@@ -179,7 +202,7 @@ extract-dir() {
 
 # $1 - path to archived (tar gziped) savefile to update into current
 # $2 - moonring save dir
-update-save-dir() {
+function update-save-dir() {
     local -r savefile=$1
     local -r save_dir=$2/../ # Overwrite 'MOONRING_SAVE_DIR'
     [[ $# -ne 2 ]] && error-exit 1 "2 arguments must be given"
@@ -190,9 +213,8 @@ update-save-dir() {
     extract-dir "$savefile" "$save_dir"
 }
 
-###
 ### Options parsing and program flow
-###
+######################################################################
 
 ## TODO: input file must be validated. If its a path that makes
 ## $target_file resolve to a path that doesn't exist, then
@@ -200,7 +222,7 @@ update-save-dir() {
 ##
 ## e.g. "lifesaver -f /path/that/dont/exists"
 
-main() {
+function main() {
     while getopts :hlFvu:f:a:s: OPT; do
         case $OPT in
             h)
@@ -211,37 +233,32 @@ main() {
                 FORCE_FLAG='true'
                 ;;
             a)
-                LIFESAVER_ARCHIVE=$OPTARG
+                LIFESAVER_ARCHIVE_DIR=$OPTARG
                 ;;
             s)
                 MOONRING_SAVE_DIR=$OPTARG
                 ;;
 
-            # TODO: the next options (-vlfu) are the possible
-            # actionable outcomes of the 'lifesaver' application. It's
-            # proper to abstract them cleaning this case statement the
-            # most possible, and add input validation to the
-            # abstracted procedure/functions.
+            # TODO: add input validation to the abstracted
+            # procedure/functions.
 
             # TODO: add test cases for possible invalid input cases.
 
             v)
-                echo "Current lifesaver environmental variables are:"
-                echo "MOONRING_SAVE_DIR = $MOONRING_SAVE_DIR"
-                echo "LIFESAVER_ARCHIVE = $LIFESAVER_ARCHIVE"
+                print-variables
                 exit
                 ;;
             l)
-                ls "$LIFESAVER_ARCHIVE"
+                list-archive "$LIFESAVER_ARCHIVE_DIR"
                 exit
                 ;;
             f)
-                local -r target_file=$LIFESAVER_ARCHIVE/$OPTARG
+                local -r target_file=$LIFESAVER_ARCHIVE_DIR/$OPTARG
                 archive-savefile "$target_file" "$MOONRING_SAVE_DIR"
                 exit
                 ;;
             u)
-                local -r compressed_dir=$LIFESAVER_ARCHIVE/$OPTARG
+                local -r compressed_dir=$LIFESAVER_ARCHIVE_DIR/$OPTARG
                 update-save-dir "$compressed_dir" "$MOONRING_SAVE_DIR"
                 exit
                 ;;

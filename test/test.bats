@@ -31,15 +31,14 @@ setup() {
     export T_ARCHIVE_DIR=$BATS_FILE_TMPDIR/archive
     export T_ARCHIVE_DIR2=$BATS_FILE_TMPDIR/archive2
 
-    # Create files moonring/file{1..3} and moonring/save/file{1..3}
-    # at $BATS_FILE_TMPDIR
+    # Create some mock files
     mkdir -p "$T_SAVE_DIR/save/"
     touch "$T_SAVE_DIR/file"{1..3} "$T_SAVE_DIR/save/file"{1..3}
 
-    # Create files archive/already_exists.tar.gz and archive/already_exists
-    # at $BATS_FILE_TMPDIR
+    # More mock files
     mkdir "$T_ARCHIVE_DIR"
     touch "$T_ARCHIVE_DIR/already_exists"
+    # This needs to be a real .tar.gz file
     tar -czf "$T_ARCHIVE_DIR/already_exists.tar.gz" \
         "$T_ARCHIVE_DIR/already_exists" >/dev/null 2>&1
     mkdir -p "${T_ARCHIVE_DIR}2/Moonring/savefiles"
@@ -65,25 +64,24 @@ setup() {
 }
 
 teardown() {
-    # Delete the tmpdir contents only
+    # Delete the tmpdir CONTENTS only
     rm -r "${BATS_FILE_TMPDIR/*:?'BATS_FILE_TMPDIR is unset or null!'}"
     unset MOONRING_SAVE_DIR SAVER_ARCHIVE
 }
 
 @test "test bats setup()" {
-    # check for created dirs
+    # check created dirs
     assert_dir_exists "$BATS_FILE_TMPDIR"
     assert_dir_exists "$T_SAVE_DIR/save/"
     assert_dir_exists "$T_ARCHIVE_DIR"
     assert_dir_exists "${T_ARCHIVE_DIR}2"
-    # check created files
+    # check created mock files
     assert_file_exists "$T_SAVE_DIR/file2"
     assert_file_exists "$T_SAVE_DIR/save/file2"
     assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
     # Test the testing setup of environment variables of lifesaver
     assert [ "$MOONRING_SAVE_DIR" == "$T_SAVE_DIR" ]
     assert [ "$LIFESAVER_ARCHIVE_DIR" == "$T_ARCHIVE_DIR" ]
-
     # create some file for testing teardown() in the next test
     touch "$BATS_FILE_TMPDIR/some-file"
 }
@@ -95,14 +93,6 @@ teardown() {
 }
 
 @test "test lifesaver edge cases input handling" {
-    # Next test case does not work because interactive nature of the
-    # script.
-
-    # Wrong filename given
-    # run lifesaver.sh -f this/is/a/path
-    # assert_failure
-    # assert_output --partial "given FILE parameter cannot be a path"
-
     # No parameter given
     run lifesaver.sh
     assert_failure
@@ -242,7 +232,7 @@ teardown() {
            --directory="$T_SAVE_DIR/.." "./$save_dir_name"
 }
 
-@test "test '-f' option interactively aborted with new_file" {
+@test "test '-f' option aborted interactively with new_file" {
     run bash -c "yes 'n' | lifesaver.sh -f new_file.tar.gz"
     assert_success
     assert_file_not_exists "$T_ARCHIVE_DIR/new_file.tar.gz"

@@ -155,9 +155,8 @@ function compress-dir() {
            --directory="$src_dir/../" "./$dir_to_tar" >/dev/null 2>&1; then
         echo "File writed at $target_file"
     else
-        local -r err_message="Something went wrong when creating $target_file
+        error-exit 1 "Something went wrong when creating $target_file
 ${FUNCNAME[0]} File couldn't be written correctly or at all"
-        error-exit 1 "$err_message"
     fi
 }
 
@@ -192,8 +191,8 @@ function archive-savefile() {
     local -r target_dir=$(dirname "$target_file") # 'filename' may be a path...
     [[ $# -eq 1 ]] || error-exit 1 "needs 1 argument"
 
-    if [[ ! -e $target_dir || ! -d $target_dir ]]; then
-        error-exit 1 "$target_file is not a valid location to save a file
+    if [[ ! -d $target_dir ]]; then
+        error-exit 1 "$target_file is not a valid directory
 Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
     fi
     validate-save-dir
@@ -223,87 +222,68 @@ function extract-dir() {
     local -r target_dir=$2
     [[ $# -ne 2 ]] && error-exit 1 "2 arguments must be given"
 
-    # TODO: remove input validation from here. The only error handling
-    # here should be if tar returns something else than '0'
-
-    if [[ -f $compressed_dir ]]; then
-        tar --extract --file="$compressed_dir" --directory="$target_dir" >/dev/null 2>&1 \
-            || error-exit 1 "tar couldn't extract $compressed_dir"
-    else
-        error-exit 1 "$compressed_dir couldn't be found"
-    fi
+    tar --extract --file="$compressed_dir" --directory="$target_dir" >/dev/null 2>&1 \
+        || error-exit 1 "tar couldn't extract $compressed_dir"
 }
 
-# $1 - path to archived (tar gziped) savefile to update into current
-# $2 - moonring save dir
+# TODO: Add confirmation steps for '-u' option
+# TODO: Add a backup hook for '-u' option
+
+# $1 - savefile to be updated as current
+#
+# Update current Moonring save-dir with the extraction of some
+# archived savefile
 function update-save-dir() {
-    local -r savefile=$1
-    local -r save_dir=$2/../ # Overwrite 'MOONRING_SAVE_DIR'
-    [[ $# -ne 2 ]] && error-exit 1 "2 arguments must be given"
+    local -r filename=$1
+    local -r compressed_dir=$LIFESAVER_ARCHIVE_DIR/$filename
+    local -r save_dir=$MOONRING_SAVE_DIR/../
+    [[ $# -ne 1 ]] && error-exit 1 "2 arguments must be given"
 
-    # TODO: add user verification step so the dir to be overwriten is
-    # explicitly showed
+    if [[ ! -f $compressed_dir ]]; then
+        error-exit 1 "$compressed_dir couldn't be found
+Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+    elif [[ ! $(file "$compressed_dir") =~ 'gzip' ]]; then # validate is a valid .tar.gz
+        error-exit 1 "$compressed_dir is not a valid archive savefile
+Archive savefiles must be valids .tar.gz files"
+    fi
+    validate-save-dir
 
-    extract-dir "$savefile" "$save_dir"
+    extract-dir "$compressed_dir" "$save_dir"
 }
 
 ### Options parsing and program flow
 ######################################################################
 
-## TODO: input file must be validated. If its a path that makes
-## $target_file resolve to a path that doesn't exist, then
-## lifesaver exits with error messages from the tar command.
-##
-## e.g. "lifesaver -f /path/that/dont/exists"
+# TODO: add a '-b' (backup) option for the 'MOONRING_SAVE_DIR'
+# TODO: add validation for writing permission for target files
 
 function main() {
     while getopts :hlFvu:f:a:s: OPT; do
         case $OPT in
-            h)
-                help
-                exit
-                ;;
-            F)
-                FORCE_FLAG='true'
-                ;;
-            a)
-                LIFESAVER_ARCHIVE_DIR=$OPTARG
-                ;;
-            s)
-                MOONRING_SAVE_DIR=$OPTARG
-                ;;
-
-            # TODO: add input validation to the abstracted
-            # procedure/functions.
-
-            # TODO: add test cases for possible invalid input cases.
-
-            v)
-                print-variables
-                exit
-                ;;
-            l)
-                list-archive
-                exit
-                ;;
-            f)
-                archive-savefile "$OPTARG"
-                exit
-                ;;
-            u)
-                local -r compressed_dir=$LIFESAVER_ARCHIVE_DIR/$OPTARG
-                update-save-dir "$compressed_dir" "$MOONRING_SAVE_DIR"
-                exit
-                ;;
-            :)
-                echo "lifesaver: option -$OPTARG requires an argument" >&2
-                echo "Try 'lifesaver -h' for more information." >&2
-                exit 1
-                ;;
-            ?)
-                echo "lifesaver: unrecognized option '$1'" >&2
-                echo "Try 'lifesaver -h' for more information." >&2
-                exit 1
+            h) help; exit
+               ;;
+            F) FORCE_FLAG='true'
+               ;;
+            a) LIFESAVER_ARCHIVE_DIR=$OPTARG
+               ;;
+            s) MOONRING_SAVE_DIR=$OPTARG
+               ;;
+            v) print-variables; exit
+               ;;
+            l) list-archive; exit
+               ;;
+            f) archive-savefile "$OPTARG"; exit
+               ;;
+            u) update-save-dir "$OPTARG"; exit
+               ;;
+            :) echo "lifesaver: option -$OPTARG requires an argument" >&2
+               echo "Try 'lifesaver -h' for more information." >&2
+               exit 1
+               ;;
+            ?) echo "lifesaver: unrecognized option '$1'" >&2
+               echo "Try 'lifesaver -h' for more information." >&2
+               exit 1
+               ;;
         esac
     done
 

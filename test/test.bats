@@ -206,14 +206,14 @@ teardown() {
 @test "test '-f' option bad input handling" {
     local -r non_existant_dir=$BATS_FILE_TMPDIR/this_dont_exist/
     local -r not_a_dir=$T_ARCHIVE_DIR/already_exists.tar.gz
-    refute lifesaver.sh -Ff # no argument
+    refute lifesaver.sh -f # no argument
     refute lifesaver.sh -a "$non_existant_dir" -Ff 'some_file'
     refute lifesaver.sh -s "$non_existant_dir" -Ff 'some_file'
     refute lifesaver.sh -a "$not_a_dir" -Ff "$not_a_dir"
     refute lifesaver.sh -s "$not_a_dir" -Ff "$not_a_dir"
     # To check some of the actual outputs
     run lifesaver.sh -a "$non_existant_dir" -Ff 'some_file'
-    assert_output --partial "not a valid location"
+    assert_output --partial "not a valid directory"
 }
 
 
@@ -231,3 +231,19 @@ teardown() {
            --file="$T_ARCHIVE_DIR/savefile.tar.gz" \
            --directory="$T_SAVE_DIR/.." "./$save_dir_name"
 }
+
+@test "test '-u' option bad input handling" {
+    local -r non_existant_dir=$BATS_FILE_TMPDIR/this_dont_exist/
+    local -r not_a_dir=$T_ARCHIVE_DIR/already_exists.tar.gz
+    refute lifesaver.sh -u # no argument
+    refute lifesaver.sh -a "$non_existant_dir" -Fu 'some_file'
+    refute lifesaver.sh -s "$non_existant_dir" -Fu 'some_file'
+    refute lifesaver.sh -a "$not_a_dir" -Fu 'some_file'
+    refute lifesaver.sh -s "$not_a_dir" -Fu 'some_file'
+    # To check some of the actual outputs
+    run lifesaver.sh -Fu '/already_exists'
+    assert_failure # Assert failure for existant invalid .tar.gz file
+    assert_output --partial "not a valid archive savefile"
+}
+
+# TODO: add tests for interactive usage of different options

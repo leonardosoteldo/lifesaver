@@ -131,7 +131,7 @@ teardown() {
 @test "test lifesaver help display" {
     run lifesaver.sh -h
     assert_success
-    assert_line --index 0 "Lifesaver: manage your Moonring save files."
+    assert_line --index 0 "Lifesaver: manage your Moonring savefiles."
 }
 
 ### '-v' (print variables) option
@@ -220,7 +220,7 @@ teardown() {
     run bash -c "yes | lifesaver.sh -f new_file.tar.gz"
     assert_success
     assert_file_exists "$T_ARCHIVE_DIR/new_file.tar.gz"
-    assert_output --partial "A new save file will be writen at:"
+    assert_output --partial "A new savefile will be writen at:"
     assert_output --partial "File written at"
     # Assert that the tarred file's contents are correct
     local -r save_dir_name=$(basename "$T_SAVE_DIR")
@@ -246,7 +246,7 @@ teardown() {
     run bash -c "yes 'n' | lifesaver.sh -f new_file.tar.gz"
     assert_success
     assert_file_not_exists "$T_ARCHIVE_DIR/new_file.tar.gz"
-    assert_output --partial "A new save file will be writen at:"
+    assert_output --partial "A new savefile will be writen at:"
     assert_output --partial "Aborted by the user"
 }
 
@@ -260,11 +260,42 @@ teardown() {
 @test "test '-u' option" {
     # Create an archive to update different than MOONRING_SAVE_DIR
     lifesaver.sh -s "$T_ARCHIVE_DIR2/Moonring" -Ff 'savefile.tar.gz' >/dev/null 2>&1
+    # The option under test:
     run lifesaver.sh -Fu 'savefile.tar.gz'
     assert_success
     # Assert the current savefile was updated correctly
     local -r save_dir_name=$(basename "$T_SAVE_DIR")
     assert tar --diff \
+           --file="$T_ARCHIVE_DIR/savefile.tar.gz" \
+           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
+}
+
+@test "test '-u' option interactively" {
+    # Create an archive to update different than MOONRING_SAVE_DIR
+    lifesaver.sh -s "$T_ARCHIVE_DIR2/Moonring" -Ff 'savefile.tar.gz' >/dev/null 2>&1
+    # The option under test:
+    run bash -c "yes | lifesaver.sh -u 'savefile.tar.gz'"
+    assert_success
+    assert_output --partial "will be extracted at"
+    assert_output --partial "Possibly overwriting some files"
+    assert_output --partial "File savefile.tar.gz was extracted at"
+    # Assert the current savefile was updated correctly
+    local -r save_dir_name=$(basename "$T_SAVE_DIR")
+    assert tar --diff \
+           --file="$T_ARCHIVE_DIR/savefile.tar.gz" \
+           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
+}
+
+@test "test '-u' option aborted interactively" {
+    # Create an archive to update different than MOONRING_SAVE_DIR
+    lifesaver.sh -s "$T_ARCHIVE_DIR2/Moonring" -Ff 'savefile.tar.gz' >/dev/null 2>&1
+    # The option under test:
+    run bash -c "yes 'n' | lifesaver.sh -u 'savefile.tar.gz'"
+    assert_success
+    assert_output --partial "Aborted by the user"
+    # Assert the current savefile was updated correctly
+    local -r save_dir_name=$(basename "$T_SAVE_DIR")
+    refute tar --diff \
            --file="$T_ARCHIVE_DIR/savefile.tar.gz" \
            --directory="$T_SAVE_DIR/.." "./$save_dir_name"
 }

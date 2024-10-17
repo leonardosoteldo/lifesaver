@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 
-# Bash script for managing Moonring save files
+# Bash script for managing Moonring savefiles
 
 ### Constants definition
 ######################################################################
 
 declare -g MOONRING_SAVE_DIR LIFESAVER_ARCHIVE_DIR FORCE_FLAG
-MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-~/.local/share/Moonring/}
-LIFESAVER_ARCHIVE_DIR=${LIFESAVER_ARCHIVE_DIR:-~/bin/moonring/save-files/}
+MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-$HOME/.local/share/Moonring/}
+LIFESAVER_ARCHIVE_DIR=${LIFESAVER_ARCHIVE_DIR:-$HOME/bin/moonring/save-files/}
 FORCE_FLAG='false'
 
 ### Help function
@@ -16,15 +16,15 @@ FORCE_FLAG='false'
 function help(){
     cat << END_OF_USAGE
 
-Lifesaver: manage your Moonring save files.
+Lifesaver: manage your Moonring savefiles.
 
  Syntax: lifesaver [OPTIONS]... [FILE]...
 
  options:
  -h          Print this [h]elp and exit.
  -F          [F]orce defined actions without asking for confirmation
-             (this will overwrite any file witouth asking!)
- -a ARCHIVE  Define [a]rchive to which save files are added to.
+             (this will overwrite any file without asking!)
+ -a ARCHIVE  Define [a]rchive to which savefiles are added to.
  -s SAVE_DIR Define the Moonring [s]ave directory to be used.
  -v          Print lifesaver's environmental [v]ariables values.
  -l          [l]ist all files in the archive directory and exit.
@@ -143,8 +143,7 @@ function list-archive() {
 # $1 = target_file to write
 # $2 = src_dir to archive with tar
 # Create a .tar.gz archive of src_dir located at target_file
-# Return 0 if succeded or 1 if not. Note that the actual dir is not
-# archived, only its contents.
+# Return 0 if succeded or 1 if not.
 function compress-dir() {
     local target_file=$1
     local src_dir=$2
@@ -156,7 +155,7 @@ function compress-dir() {
         echo "File written at $target_file"
     else
         error-exit 1 "Something went wrong when creating $target_file
-${FUNCNAME[0]} File couldn't be written correctly or at all"
+${FUNCNAME[0]} 'tar' command exited with error"
     fi
 }
 
@@ -183,7 +182,7 @@ function compress-dir-safely() {
 }
 
 # $1 = target_file to write to
-# Archive the current save file of Moonring game. Create a .tar.gz
+# Archive the current savefile of Moonring game. Create a .tar.gz
 # archive at $target_file, using $MOONRING_SAVE_DIR as source
 function archive-savefile() {
     local -r filename=$1
@@ -198,7 +197,7 @@ Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variabl
     if $FORCE_FLAG; then
        compress-dir "$target_file" "$MOONRING_SAVE_DIR";
     else
-        echo "A new save file will be writen at:"
+        echo "A new savefile will be writen at:"
         echo "$target_file"
         if prompt-y-or-n "Are you sure you want to proceed? [y/n] "; then
             compress-dir-safely "$target_file" "$MOONRING_SAVE_DIR"
@@ -218,10 +217,12 @@ Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variabl
 function extract-dir() {
     local -r compressed_dir=$1
     local -r target_dir=$2
+    local -r filename=$(basename "$compressed_dir")
     [[ $# -ne 2 ]] && error-exit 1 "2 arguments must be given"
 
     tar --extract --file="$compressed_dir" --directory="$target_dir" >/dev/null 2>&1 \
         || error-exit 1 "tar couldn't extract $compressed_dir"
+    echo "File $filename was extracted at: $target_dir"
 }
 
 # TODO: Add confirmation steps for '-u' option
@@ -234,19 +235,29 @@ function extract-dir() {
 function update-save-dir() {
     local -r filename=$1
     local -r compressed_dir=$LIFESAVER_ARCHIVE_DIR/$filename
-    local -r save_dir=$MOONRING_SAVE_DIR/../
+    local -r save_dir=$(dirname "$MOONRING_SAVE_DIR")
     [[ $# -ne 1 ]] && error-exit 1 "2 arguments must be given"
 
     if [[ ! -f $compressed_dir ]]; then
         error-exit 1 "$compressed_dir couldn't be found
 Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
     elif [[ ! $(file "$compressed_dir") =~ 'gzip' ]]; then # Is not a valid .tar.gz
-        error-exit 1 "$compressed_dir is not a valid archive savefile
-Archive savefiles must be valids .tar.gz files"
+        error-exit 1 "$filename is not a valid archive savefile
+Archive savefiles must be .tar.gz files"
     fi
     validate-save-dir
 
-    extract-dir "$compressed_dir" "$save_dir"
+    if $FORCE_FLAG; then
+        extract-dir "$compressed_dir" "$save_dir"
+    else
+        echo "$filename will be extracted at: $save_dir"
+        echo "Possibly overwriting some files and directories"
+        if prompt-y-or-n "Are you sure you want to proceed? [y/n] "; then
+            extract-dir "$compressed_dir" "$save_dir"
+        else
+            echo "Aborted by the user"
+        fi
+    fi
 }
 
 ### Options parsing and program flow

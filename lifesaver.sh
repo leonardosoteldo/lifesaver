@@ -153,7 +153,7 @@ function compress-dir() {
     local -r dir_to_tar=$(basename "$src_dir")
     if tar --create --gzip --file="$target_file" \
            --directory="$src_dir/../" "./$dir_to_tar" >/dev/null 2>&1; then
-        echo "File writed at $target_file"
+        echo "File written at $target_file"
     else
         error-exit 1 "Something went wrong when creating $target_file
 ${FUNCNAME[0]} File couldn't be written correctly or at all"
@@ -191,10 +191,8 @@ function archive-savefile() {
     local -r target_dir=$(dirname "$target_file") # 'filename' may be a path...
     [[ $# -eq 1 ]] || error-exit 1 "needs 1 argument"
 
-    if [[ ! -d $target_dir ]]; then
-        error-exit 1 "$target_file is not a valid directory
+    [[ -d $target_dir ]] || error-exit 1 "$target_file is not a valid directory
 Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
-    fi
     validate-save-dir
 
     if $FORCE_FLAG; then
@@ -242,7 +240,7 @@ function update-save-dir() {
     if [[ ! -f $compressed_dir ]]; then
         error-exit 1 "$compressed_dir couldn't be found
 Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
-    elif [[ ! $(file "$compressed_dir") =~ 'gzip' ]]; then # validate is a valid .tar.gz
+    elif [[ ! $(file "$compressed_dir") =~ 'gzip' ]]; then # Is not a valid .tar.gz
         error-exit 1 "$compressed_dir is not a valid archive savefile
 Archive savefiles must be valids .tar.gz files"
     fi

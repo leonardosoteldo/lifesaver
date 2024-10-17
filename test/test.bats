@@ -194,12 +194,12 @@ teardown() {
 
 # As -F is used saving a new file and overwriting is the same action
 @test "test '-f' option" {
-    run lifesaver.sh -Ff already_exists.tar.gz
-    assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
+    run lifesaver.sh -Ff new_file.tar.gz
+    assert_file_exists "$T_ARCHIVE_DIR/new_file.tar.gz"
     # Assert that the tarred file's contents are correct
     local -r save_dir_name=$(basename "$T_SAVE_DIR")
     assert tar --diff \
-           --file="$T_ARCHIVE_DIR/already_exists.tar.gz" \
+           --file="$T_ARCHIVE_DIR/new_file.tar.gz" \
            --directory="$T_SAVE_DIR/.." "./$save_dir_name"
 }
 
@@ -215,6 +215,43 @@ teardown() {
     run lifesaver.sh -a "$non_existant_dir" -Ff 'some_file'
     assert_output --partial "not a valid directory"
 }
+
+@test "test '-f' option interactively with new_file" {
+    run bash -c "yes | lifesaver.sh -f new_file.tar.gz"
+    assert_success
+    assert_file_exists "$T_ARCHIVE_DIR/new_file.tar.gz"
+    assert_output --partial "A new save file will be writen at:"
+    assert_output --partial "File written at"
+    # Assert that the tarred file's contents are correct
+    local -r save_dir_name=$(basename "$T_SAVE_DIR")
+    assert tar --diff \
+           --file="$T_ARCHIVE_DIR/new_file.tar.gz" \
+           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
+}
+
+@test "test '-f' option interactively with already_exists file" {
+    run bash -c "yes | lifesaver.sh -f already_exists.tar.gz"
+    assert_success
+    assert_file_exists "$T_ARCHIVE_DIR/already_exists.tar.gz"
+    assert_output --partial "already exists"
+    assert_output --partial "File written at"
+    # Assert that the tarred file's contents are correct
+    local -r save_dir_name=$(basename "$T_SAVE_DIR")
+    assert tar --diff \
+           --file="$T_ARCHIVE_DIR/already_exists.tar.gz" \
+           --directory="$T_SAVE_DIR/.." "./$save_dir_name"
+}
+
+@test "test '-f' option interactively aborted with new_file" {
+    run bash -c "yes 'n' | lifesaver.sh -f new_file.tar.gz"
+    assert_success
+    assert_file_not_exists "$T_ARCHIVE_DIR/new_file.tar.gz"
+    assert_output --partial "A new save file will be writen at:"
+    assert_output --partial "Aborted by the user"
+}
+
+# TODO: make iteractive test that accepts with 'y' the first prompt
+# but denies with 'n' the second one. (is 'expect' necessary?)
 
 
 ### '-u' (update current save dir) option

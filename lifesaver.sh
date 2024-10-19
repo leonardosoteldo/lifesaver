@@ -89,7 +89,7 @@ function prompt-y-or-n() {
 function validate-archive-dir {
     local -r archive_dir_nonexistant="lifesaver archive directory cannot be found
 Try using the '-a' option or binding the 'LIFESAVER_ARCHIVE_DIR' environment variable"
-    local -r archive_dir_wrong_file="lifesaver archive directory cannot be found
+    local -r archive_dir_wrong_file="lifesaver archive directory is not a directory
 Try using the '-a' option or binding the 'LIFESAVER_ARCHIVE_DIR' environment variable"
 
     if [[ ! -e $LIFESAVER_ARCHIVE_DIR ]]; then
@@ -262,32 +262,28 @@ Archive savefiles must be .tar.gz files"
 # TODO: add a '-b' (backup) option for the 'MOONRING_SAVE_DIR'
 # TODO: add validation for writing permission for target files
 
-function main() {
+function parse-options() {
     while getopts :hlFvu:f:a:s: OPT; do
         case $OPT in
-            h) help; exit;;
-            F) FORCE_FLAG='true';;
-            a) LIFESAVER_ARCHIVE_DIR=$OPTARG;;
-            s) MOONRING_SAVE_DIR=$OPTARG;;
-            v) print-variables; exit;;
-            l) list-archive; exit;;
-            f) archive-savefile "$OPTARG"; exit;;
-            u) update-save-dir "$OPTARG"; exit;;
-            :) error-exit 1 "option -$OPTARG requires an argument";;
-            ?) error-exit 1 "unrecognized option '$1'";;
+            h) help; exit ;;
+            F) FORCE_FLAG='true' ;;
+            a) LIFESAVER_ARCHIVE_DIR=$OPTARG ;;
+            s) MOONRING_SAVE_DIR=$OPTARG ;;
+            v) print-variables; exit ;;
+            l) list-archive; exit ;;
+            f) archive-savefile "$OPTARG"; exit ;;
+            u) update-save-dir "$OPTARG"; exit ;;
+            :) error-exit 1 "option -$OPTARG requires an argument" ;;
+            *) error-exit 1 "unrecognized option '$1'" ;;
         esac
     done
 
     ## Handle edge cases
-    if [[ $# -eq 0 ]] ; then  # No argument given
-        echo "lifesaver: no option given" >&2
-        echo "Try 'lifesaver -h' for more information." >&2
-        exit 1
-    else                      # No dash preceding the options
-        echo "lifesaver: unrecognized option '$1'" >&2
-        echo "Try 'lifesaver -h' for more information." >&2
-        exit 1
+    if [[ $# -eq 0 ]]; then
+        error-exit 1 "no option given"
+    else
+        error-exit 1 "unrecognized option '$1'"
     fi
 }
 
-main "$@"
+parse-options "$@"

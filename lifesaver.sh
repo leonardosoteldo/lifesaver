@@ -41,8 +41,9 @@ END_OF_USAGE
 # ${*:2} = (rest of args) Message to stderr
 #
 # Exit with exit status error number '$1' and messaging to stderr:
-#   > shell_script: fatal error
-#   > caller_function: ${*:2}
+#   $ error-exit 1 "wrong number of arguments"
+#   > $caller_script: fatal error
+#   > $caller_function: wrong number of arguments
 #
 # This functon exit with error (1) if an invalid shell exit status is
 # used as its first argument ('$1'.) Exit statuses must be integers
@@ -51,22 +52,24 @@ function error-exit() {
     local -r exit_status=$1
     local -r err_message=${*:2}
     local -r caller_func=${FUNCNAME[1]}
-    local -r caller_script=$0
-    # Ensure 'exit_status' is a valid shell exit status (1 to 255 int)
+    local -r caller_script=$(basename "$0")
+
+    # Validate 'exit_status' argument (an integer between 1 to 255)
     local -r regex='^[0-9]+$' # Avoids potential backwards compatibility errors
     if [[ ! $exit_status =~ $regex || $exit_status -le 0 || $exit_status -gt 255 ]]; then
         echo "$caller_script: fatal error" >&2
-        echo -e "error-exit(): argument '\$1' must be an integer between 1 and 255 (both inclusive)" >&2
+        echo -e "error-exit(): argument '\$1' must be an integer between 1 and 255" >&2
         exit 1
     fi
+
     echo "$caller_script: fatal error"
     echo "$caller_func(): ${err_message:-exited with fatal error}"
     exit "$exit_status"
 }
 
-# $* = message to prompt the user
-# Ask for confirmation using $message and returns 0 (true) or 1 (false)
-# wheter the user answer with an 'y' or a 'n'.
+# $* = message to prompt the user Ask for confirmation using $message
+# and returns 0 (true) or 1 (false) wheter the user answer with an 'y'
+# or a 'n'.
 function prompt-y-or-n() {
     local -r message=$*
     [[ $# -gt 0 ]] || error-exit 1 "no arguments given"
@@ -74,14 +77,9 @@ function prompt-y-or-n() {
     read -rp "$message " prompt;
     while true; do
         case $prompt in
-            y|Y)
-                return 0
-                ;;
-            n|N)
-                return 1
-                ;;
-            *)
-                read -rp "You must answer with a 'y' or 'n': " prompt
+            y | Y ) return 0;;
+            n | N ) return 1;;
+            *) read -rp "You must answer with a 'y' or 'n': " prompt
         esac
     done;
 }
@@ -269,30 +267,16 @@ Archive savefiles must be .tar.gz files"
 function main() {
     while getopts :hlFvu:f:a:s: OPT; do
         case $OPT in
-            h) help; exit
-               ;;
-            F) FORCE_FLAG='true'
-               ;;
-            a) LIFESAVER_ARCHIVE_DIR=$OPTARG
-               ;;
-            s) MOONRING_SAVE_DIR=$OPTARG
-               ;;
-            v) print-variables; exit
-               ;;
-            l) list-archive; exit
-               ;;
-            f) archive-savefile "$OPTARG"; exit
-               ;;
-            u) update-save-dir "$OPTARG"; exit
-               ;;
-            :) echo "lifesaver: option -$OPTARG requires an argument" >&2
-               echo "Try 'lifesaver -h' for more information." >&2
-               exit 1
-               ;;
-            ?) echo "lifesaver: unrecognized option '$1'" >&2
-               echo "Try 'lifesaver -h' for more information." >&2
-               exit 1
-               ;;
+            h) help; exit;;
+            F) FORCE_FLAG='true';;
+            a) LIFESAVER_ARCHIVE_DIR=$OPTARG;;
+            s) MOONRING_SAVE_DIR=$OPTARG;;
+            v) print-variables; exit;;
+            l) list-archive; exit;;
+            f) archive-savefile "$OPTARG"; exit;;
+            u) update-save-dir "$OPTARG"; exit;;
+            :) error-exit 1 "option -$OPTARG requires an argument";;
+            ?) error-exit 1 "unrecognized option '$1'";;
         esac
     done
 

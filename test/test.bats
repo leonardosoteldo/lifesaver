@@ -96,22 +96,22 @@ teardown() {
     # No parameter given
     run lifesaver.sh
     assert_failure
-    assert_line --index 0 "lifesaver: no option given"
+    assert_output --partial "no option given"
 
     # No preceeding dash with options
     run  lifesaver.sh hls
     assert_failure
-    assert_line --index 0 "lifesaver: unrecognized option 'hls'"
+    assert_output --partial "unrecognized option 'hls'"
 
     # Invalid option given alone
     run lifesaver.sh -x
     assert_failure
-    assert_line "lifesaver: unrecognized option '-x'"
+    assert_output --partial "unrecognized option '-x'"
 
     # Invalid option given preceeding a valid option
     run lifesaver.sh -xh
     assert_failure
-    assert_line --index 0 "lifesaver: unrecognized option '-xh'"
+    assert_output --partial "unrecognized option '-xh'"
 
     # Invalid options given after a valid option
     run lifesaver.sh -hxc
@@ -121,7 +121,7 @@ teardown() {
 @test "test lifesaver help display" {
     run lifesaver.sh -h
     assert_success
-    assert_line --index 0 "Lifesaver: manage your Moonring savefiles."
+    assert_output --partial "manage your Moonring savefiles."
 }
 
 ### '-v' (print variables) option

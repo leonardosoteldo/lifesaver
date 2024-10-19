@@ -140,24 +140,12 @@ teardown() {
     # same test, to assure that -a nor -s don't mutate shell state.)
     local env_vars save_dir archive_dir
     env_vars=$(lifesaver.sh -v)
-    # Print the 3º column of lines matching '/WORD/' in 'env_vars'
+    # Get values of lifesaver environmental values
     save_dir=$(awk '/MOONRING/ {print $3}' <<< "$env_vars")
     archive_dir=$(awk '/ARCHIVE/ {print $3}' <<< "$env_vars")
     # Compare this values against the values of testing env vars
     assert [ "$archive_dir" == "$T_ARCHIVE_DIR" ]
     assert [ "$save_dir" == "$T_SAVE_DIR" ]
-}
-
-@test "test '-v' option bad input handling" {
-    local -r non_existant_dir=$BATS_FILE_TMPDIR/this_dont_exist/
-    local -r not_a_dir=$T_ARCHIVE_DIR/already_exists.tar.gz
-    refute lifesaver.sh -a "$non_existant_dir" -v
-    refute lifesaver.sh -s "$non_existant_dir" -v
-    refute lifesaver.sh -a "$not_a_dir" -v
-    refute lifesaver.sh -s "$not_a_dir" -v
-    # To check some of the actual output
-    run lifesaver.sh -a "$non_existant_dir" -v
-    assert_output --partial "cannot be found"
 }
 
 ### '-l' (list archive dir) option

@@ -58,7 +58,7 @@ function error-exit() {
     local -r regex='^[0-9]+$' # Avoids potential backwards compatibility errors
     if [[ ! $exit_status =~ $regex || $exit_status -le 0 || $exit_status -gt 255 ]]; then
         echo "$caller_script: fatal error" >&2
-        echo -e "error-exit(): argument '\$1' must be an integer between 1 and 255" >&2
+        echo "error-exit(): argument '\$1' must be an integer between 1 and 255" >&2
         exit 1
     fi
 
@@ -79,7 +79,7 @@ function prompt-y-or-n() {
         case $prompt in
             y | Y ) return 0;;
             n | N ) return 1;;
-            *) read -rp "You must answer with a 'y' or 'n': " prompt
+                 *) read -rp "You must answer with a 'y' or 'n': " prompt
         esac
     done;
 }
@@ -118,8 +118,6 @@ Try using the '-s' option or binding the 'MOONRING_SAVE_DIR' environment variabl
 ######################################################################
 
 function print-variables() {
-    validate-archive-dir
-    validate-save-dir
     echo "Current lifesaver environmental variables are:"
     echo "MOONRING_SAVE_DIR = $MOONRING_SAVE_DIR"
     echo "LIFESAVER_ARCHIVE_DIR = $LIFESAVER_ARCHIVE_DIR"

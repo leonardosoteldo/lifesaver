@@ -221,7 +221,6 @@ function extract-dir() {
     echo "File $filename was extracted at: $target_dir"
 }
 
-# TODO: Add confirmation steps for '-u' option
 # TODO: Add a backup hook for '-u' option
 
 # $1 - savefile to be updated as current
@@ -232,7 +231,7 @@ function update-save-dir() {
     local -r filename=$1
     local -r compressed_dir=$LIFESAVER_ARCHIVE_DIR/$filename
     local -r save_dir=$(dirname "$MOONRING_SAVE_DIR")
-    [[ $# -ne 1 ]] && error-exit 1 "2 arguments must be given"
+    [[ $# -ne 1 ]] && error-exit 1 "1 argument must be given"
 
     if [[ ! -f $compressed_dir ]]; then
         error-exit 1 "$compressed_dir couldn't be found

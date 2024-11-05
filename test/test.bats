@@ -12,7 +12,7 @@ setup_file() {
     PATH=$BATS_TEST_DIRNAME/../:$PATH
     # Assign a base directory for creating temp dirs or files
     # shellcheck disable=2034
-    BATS_TMPDIR=$BATS_TEST_DIRNAME/tmp
+    BATS_TMPDIR=$BATS_TEST_DIRNAME/
     # Create a temporary directory and assign its path to a variable
     BATS_FILE_TMPDIR="$(temp_make)"
 }

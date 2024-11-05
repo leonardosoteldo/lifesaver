@@ -5,8 +5,8 @@
 ### Constants definition
 ######################################################################
 
-declare -g MOONRING_SAVE_DIR LIFESAVER_ARCHIVE_DIR FORCE_FLAG
-MOONRING_SAVE_DIR=${MOONRING_SAVE_DIR:-$HOME/.local/share/Moonring/}
+declare -g LIFESAVER_SAVE_DIR LIFESAVER_ARCHIVE_DIR FORCE_FLAG
+LIFESAVER_SAVE_DIR=${LIFESAVER_SAVE_DIR:-$HOME/.local/share/Moonring/}
 LIFESAVER_ARCHIVE_DIR=${LIFESAVER_ARCHIVE_DIR:-$HOME/bin/moonring/save-files/}
 FORCE_FLAG='false'
 
@@ -99,17 +99,17 @@ Try using the '-a' option or binding the 'LIFESAVER_ARCHIVE_DIR' environment var
     fi
 }
 
-# Validate that 'MOONRING_SAVE_DIR' are bound to an existent and
+# Validate that 'LIFESAVER_SAVE_DIR' are bound to an existent and
 # valid directory, exiting with '1' if not.
 function validate_save_dir {
     local -r save_dir_nonexistant="Moonring save directory cannot be found
-Try using the '-s' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+Try using the '-s' option or binding the 'LIFESAVER_SAVE_DIR' environment variable"
     local -r save_dir_wrong_file="Specified Moonring save directory file is not a directory
-Try using the '-s' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+Try using the '-s' option or binding the 'LIFESAVER_SAVE_DIR' environment variable"
 
-    if [[ ! -e $MOONRING_SAVE_DIR ]]; then
+    if [[ ! -e $LIFESAVER_SAVE_DIR ]]; then
         error_exit 1 "$save_dir_nonexistant"
-    elif [[ ! -d $MOONRING_SAVE_DIR ]]; then
+    elif [[ ! -d $LIFESAVER_SAVE_DIR ]]; then
         error_exit 1 "$save_dir_wrong_file"
     fi
 }
@@ -119,7 +119,7 @@ Try using the '-s' option or binding the 'MOONRING_SAVE_DIR' environment variabl
 
 function print_variables() {
     echo "Current lifesaver environmental variables are:"
-    echo "MOONRING_SAVE_DIR = $MOONRING_SAVE_DIR"
+    echo "LIFESAVER_SAVE_DIR = $LIFESAVER_SAVE_DIR"
     echo "LIFESAVER_ARCHIVE_DIR = $LIFESAVER_ARCHIVE_DIR"
 }
 
@@ -133,7 +133,7 @@ function list-archive() {
     ls --color=never "$LIFESAVER_ARCHIVE_DIR"
 }
 
-### -f option (archive current 'MOONRING_SAVE_DIR')
+### -f option (archive current 'LIFESAVER_SAVE_DIR')
 ######################################################################
 
 # $1 = target_file to write
@@ -179,7 +179,7 @@ function compress_dir_safely() {
 
 # $1 = target_file to write to
 # Archive the current savefile of Moonring game. Create a .tar.gz
-# archive at $target_file, using $MOONRING_SAVE_DIR as source
+# archive at $target_file, using $LIFESAVER_SAVE_DIR as source
 function archive_savefile() {
     local -r filename=$1
     local -r target_file=${LIFESAVER_ARCHIVE_DIR:-./}/$filename
@@ -187,23 +187,23 @@ function archive_savefile() {
     [[ $# -eq 1 ]] || error_exit 1 "needs 1 argument"
 
     [[ -d $target_dir ]] || error_exit 1 "$target_file is not a valid directory
-Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+Try using the '-a' option or binding the 'LIFESAVER_SAVE_DIR' environment variable"
     validate_save_dir
 
     if $FORCE_FLAG; then
-       compress_dir "$target_file" "$MOONRING_SAVE_DIR";
+       compress_dir "$target_file" "$LIFESAVER_SAVE_DIR";
     else
         echo "A new savefile will be writen at:"
         echo "$target_file"
         if prompt_y_or_n "Are you sure you want to proceed? [y/n] "; then
-            compress_dir_safely "$target_file" "$MOONRING_SAVE_DIR"
+            compress_dir_safely "$target_file" "$LIFESAVER_SAVE_DIR"
         else
             echo "Aborted by the user"
         fi
     fi
 }
 
-### -u option (update 'MOONRING_SAVE_DIR' with savefile from 'LIFESAVER_ARCHIVE_DIR')
+### -u option (update 'LIFESAVER_SAVE_DIR' with savefile from 'LIFESAVER_ARCHIVE_DIR')
 ######################################################################
 
 # $1 = compressed_dir to be extracted
@@ -230,12 +230,12 @@ function extract_dir() {
 function update_save_dir() {
     local -r filename=$1
     local -r compressed_dir=$LIFESAVER_ARCHIVE_DIR/$filename
-    local -r save_dir=$(dirname "$MOONRING_SAVE_DIR")
+    local -r save_dir=$(dirname "$LIFESAVER_SAVE_DIR")
     [[ $# -ne 1 ]] && error_exit 1 "1 argument must be given"
 
     if [[ ! -f $compressed_dir ]]; then
         error_exit 1 "$compressed_dir couldn't be found
-Try using the '-a' option or binding the 'MOONRING_SAVE_DIR' environment variable"
+Try using the '-a' option or binding the 'LIFESAVER_SAVE_DIR' environment variable"
     elif [[ ! $(file "$compressed_dir") =~ 'gzip' ]]; then # Is not a valid .tar.gz
         error_exit 1 "$filename is not a valid archive savefile
 Archive savefiles must be .tar.gz files"
@@ -258,7 +258,7 @@ Archive savefiles must be .tar.gz files"
 ### Options parsing and program flow
 ######################################################################
 
-# TODO: add a '-b' (backup) option for the 'MOONRING_SAVE_DIR'
+# TODO: add a '-b' (backup) option for the 'LIFESAVER_SAVE_DIR'
 # TODO: add validation for writing permission for target files
 
 function parse_options() {
@@ -267,7 +267,7 @@ function parse_options() {
             h) help; exit ;;
             F) FORCE_FLAG='true' ;;
             a) LIFESAVER_ARCHIVE_DIR=$OPTARG ;;
-            s) MOONRING_SAVE_DIR=$OPTARG ;;
+            s) LIFESAVER_SAVE_DIR=$OPTARG ;;
             v) print_variables; exit ;;
             l) list-archive; exit ;;
             f) archive_savefile "$OPTARG"; exit ;;

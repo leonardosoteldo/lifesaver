@@ -86,41 +86,45 @@ function prompt_y_or_n() {
 
 # $1 - (OPTIONAL) archive dir to be validated
 # Validate that $1 or 'LIFESAVER_ARCHIVE_DIR' are bound to an existent
-# and valid directory, exiting with '1' if not.
+# and valid directory, returning '1' if not.
 # shellcheck disable=2120
 function validate_archive_dir {
     local -r save_dir=${1:-$LIFESAVER_ARCHIVE_DIR}
     [[ $# -lt 2 ]] || error_exit "Only one optional argument may be used"
 
-    local -r error_non_existant="lifesaver archive directory cannot be found
+    local -r error_non_existant="validate_archive_dir: lifesaver archive directory cannot be found
 Try using the '-a' option or binding the 'LIFESAVER_ARCHIVE_DIR' environment variable"
-    local -r error_wrong_file="lifesaver archive directory is not a directory
+    local -r error_wrong_file="validate_archive_dir: lifesaver archive directory is not a directory
 Try using the '-a' option or binding the 'LIFESAVER_ARCHIVE_DIR' environment variable"
 
     if [[ ! -e $LIFESAVER_ARCHIVE_DIR ]]; then
-        error_exit 1 "$error_non_existant"
+        echo "$error_non_existant" >&2
+        return 1
     elif [[ ! -d $LIFESAVER_ARCHIVE_DIR ]]; then
-        error_exit 1 "$error_wrong_file"
+        echo  "$error_wrong_file" >&2
+        return 1
     fi
 }
 
 # $1 - (OPTIONAL) save dir to be validated
 # Validate that $1 or 'LIFESAVER_SAVE_DIR' are bound to an existent
-# and valid directory, exiting with '1' if not.
+# and valid directory, returning '1' if not.
 # shellcheck disable=2120
 function validate_save_dir {
     local -r save_dir=${1:-$LIFESAVER_SAVE_DIR}
     [[ $# -lt 2 ]] || error_exit "Only one optional argument may be used"
 
-    local -r error_non_existant="Moonring save directory cannot be found
+    local -r error_non_existant="validate_save_dir: Moonring save directory cannot be found
 Try using the '-s' option or binding the 'LIFESAVER_SAVE_DIR' environment variable"
-    local -r error_wrong_file="Specified Moonring save directory file is not a directory
+    local -r error_wrong_file="validate_save_dir: Specified Moonring save directory file is not a directory
 Try using the '-s' option or binding the 'LIFESAVER_SAVE_DIR' environment variable"
 
     if [[ ! -e $save_dir ]]; then
-        error_exit 1 "$error_non_existant"
+        echo "$error_non_existant" >&2
+        return 1
     elif [[ ! -d $save_dir ]]; then
-        error_exit 1 "$error_wrong_file"
+        echo "$error_wrong_file" >&2
+        return 1
     fi
 }
 
@@ -137,10 +141,10 @@ function print_variables() {
 ######################################################################
 
 function list-archive() {
-    validate_archive_dir
+    validate_archive_dir || exit 1
     echo "Current lifesaver archive is: $LIFESAVER_ARCHIVE_DIR"
     echo -e "Its contents are:\n"
-    ls --color=never "$LIFESAVER_ARCHIVE_DIR"
+    ls "$LIFESAVER_ARCHIVE_DIR"
 }
 
 ### -f option (archive current 'LIFESAVER_SAVE_DIR')
@@ -202,8 +206,8 @@ function archive_savefile() {
     # Validate  target_dir
     [[ -d $target_dir ]] || error_exit 1 "$target_file is not a valid directory
 Try using the '-a' option or binding the 'LIFESAVER_SAVE_DIR' environment variable"
-    validate_archive_dir
-    validate_save_dir
+    validate_archive_dir || exit 1
+    validate_save_dir || exit 1
 
     if $FORCE_FLAG; then
        compress_dir "$target_file" "$LIFESAVER_SAVE_DIR";
@@ -257,13 +261,13 @@ Try using the '-a' option or binding the 'LIFESAVER_SAVE_DIR' environment variab
 Archive savefiles must be .tar.gz files"
     fi
 
-    validate_save_dir
+    validate_save_dir || exit 1
 
     if $FORCE_FLAG; then
         extract_dir "$compressed_dir" "$save_dir"
     else
         echo "$filename will be extracted at: $save_dir"
-        echo "Possibly overwriting some files and directories"
+        echo "This will overwrite your current Moonring savfiles! Backup them beforehand!"
         if prompt_y_or_n "Are you sure you want to proceed? [y/n] "; then
             extract_dir "$compressed_dir" "$save_dir"
         else

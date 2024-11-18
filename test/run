@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+# testrunner script of lifesaver
+
+# TODO: add a more exhaustive check for dependencies of lifesaver and
+# its test suite
+
+if [[ -f ./.bats/bats/bin/bats ]]; then
+    ./.bats/bats/bin/bats ./test.bats
+elif command -v bats; then
+    readonly bats_version
+    bats_version=$(bats --version)
+    echo "./.bats/bats/bin/bats couldn't be found."
+    echo "You may need to initialize the bats git submodules"
+    echo "${bats_version} was found and used for running lifesaver tests:"
+    echo
+    bats ./test.bats
+else
+    echo "./.bats/bats/bin/bats couldn't be found."
+    echo "You may need to initialize the bats git submodules"
+    echo "'bats' couldn't be found in the system."
+    echo "Unable to run 'lifesaver' tests."
+fi

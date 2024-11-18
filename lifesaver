@@ -274,12 +274,12 @@ Archive savefiles must be .tar.gz files"
     fi
 }
 
-### Options parsing and program flow
+### Options parsing
 ######################################################################
 
 # TODO: add validation for writing permission for target files
 
-function parse_options() {
+function main() {
     while getopts :hlFpu:f:a:s: OPT; do
         case $OPT in
             h) help; exit ;;
@@ -303,4 +303,4 @@ function parse_options() {
     fi
 }
 
-parse_options "$@"
+main "$@"

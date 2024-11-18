@@ -240,8 +240,6 @@ function extract_dir() {
     echo "File $filename was extracted at: $target_dir"
 }
 
-# TODO: Add a backup hook for '-u' option
-
 # $1 - savefile to be updated as current
 #
 # Update current Moonring save-dir with the extraction of some
@@ -279,7 +277,6 @@ Archive savefiles must be .tar.gz files"
 ### Options parsing and program flow
 ######################################################################
 
-# TODO: add a '-b' (backup) option for the 'LIFESAVER_SAVE_DIR'
 # TODO: add validation for writing permission for target files
 
 function parse_options() {

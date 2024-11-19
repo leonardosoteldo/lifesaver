@@ -52,7 +52,7 @@ setup() {
     # CRITICAL FAIL if lifesaver ignores the environment variable;
     # otherwise user's files may be compromised by testing processes.
     local env_vars save_var archive_var
-    env_vars=$(lifesaver -v)
+    env_vars=$(lifesaver -p)
     # Get values of 'LIFESAVER_SAVE_DIR' and 'LIFESAVER_ARCHIVE_DIR'
     save_var=$(awk '/LIFESAVER_SAVE_DIR/ {print $3}' <<< "$env_vars")
     archive_var=$(awk '/LIFESAVER_ARCHIVE_DIR/ {print $3}' <<< "$env_vars")
@@ -124,22 +124,22 @@ teardown() {
     assert_output --partial "manage your Moonring savefiles."
 }
 
-### '-v' (print variables) option
+### '-p' (print variables) option
 ######################################################################
 
-@test "test '-v' option" {
+@test "test '-p' option" {
     # the '-F' is used to avoid validations that will fail the test
     run lifesaver \
         -s "$T_SAVE_DIR/save/" \
         -a "$T_ARCHIVE_DIR2/" \
-        -v
+        -p
     assert_output --partial "$T_SAVE_DIR/save/"
     assert_output --partial "$T_ARCHIVE_DIR2/"
 
     # Test if environment variables are unchanged (this must be in the
     # same test, to assure that -a nor -s don't mutate shell state.)
     local env_vars save_dir archive_dir
-    env_vars=$(lifesaver -v)
+    env_vars=$(lifesaver -p)
     # Get values of lifesaver environmental values
     save_dir=$(awk '/LIFESAVER_SAVE_DIR/ {print $3}' <<< "$env_vars")
     archive_dir=$(awk '/LIFESAVER_ARCHIVE_DIR/ {print $3}' <<< "$env_vars")
@@ -255,7 +255,7 @@ teardown() {
     run bash -c "yes | lifesaver -u 'savefile.tar.gz'"
     assert_success
     assert_output --partial "will be extracted at"
-    assert_output --partial "Possibly overwriting some files"
+    assert_output --partial "This will overwrite your current Moonring savfiles!"
     assert_output --partial "File savefile.tar.gz was extracted at"
     # Assert the current savefile was updated correctly
     local -r save_dir_name=$(basename "$T_SAVE_DIR")

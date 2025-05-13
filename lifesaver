@@ -263,7 +263,7 @@ Archive savefiles must be .tar.gz files"
         extract_dir "$compressed_dir" "$save_dir"
     else
         echo "$filename will be extracted at: $save_dir"
-        echo "This will overwrite your current Moonring savfiles! Backup them beforehand!"
+        echo "This will overwrite your current Moonring savefiles! Backup them beforehand!"
         if prompt_y_or_n "Are you sure you want to proceed? [y/n] "; then
             extract_dir "$compressed_dir" "$save_dir"
         else

@@ -255,7 +255,7 @@ teardown() {
     run bash -c "yes | lifesaver -u 'savefile.tar.gz'"
     assert_success
     assert_output --partial "will be extracted at"
-    assert_output --partial "This will overwrite your current Moonring savfiles!"
+    assert_output --partial "This will overwrite your current Moonring savefiles!"
     assert_output --partial "File savefile.tar.gz was extracted at"
     # Assert the current savefile was updated correctly
     local -r save_dir_name=$(basename "$T_SAVE_DIR")

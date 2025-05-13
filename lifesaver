@@ -5,9 +5,7 @@
 ### Constants definition
 ######################################################################
 
-declare -g LIFESAVER_SAVE_DIR LIFESAVER_ARCHIVE_DIR FORCE_FLAG
-LIFESAVER_SAVE_DIR=${LIFESAVER_SAVE_DIR:-$HOME/.local/share/Moonring/}
-LIFESAVER_ARCHIVE_DIR=${LIFESAVER_ARCHIVE_DIR:-$HOME/bin/moonring/save-files/}
+# declare -g FORCE_FLAG
 FORCE_FLAG='false'
 
 ### Help function

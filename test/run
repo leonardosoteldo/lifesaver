@@ -5,16 +5,17 @@
 # TODO: add a more exhaustive check for dependencies of lifesaver and
 # its test suite
 
-if [[ -f ./.bats/bats/bin/bats ]]; then
-    ./.bats/bats/bin/bats ./test.bats
-elif command -v bats; then
-    readonly bats_version
+test_dir=$(dirname "$0")
+
+if [[ -f $test_dir/.bats/bats/bin/bats ]]; then
+    "$test_dir"/.bats/bats/bin/bats "$test_dir"/test.bats
+elif command -v bats >/dev/null 2>&1; then
     bats_version=$(bats --version)
     echo "./.bats/bats/bin/bats couldn't be found."
     echo "You may need to initialize the bats git submodules"
-    echo "${bats_version} was found and used for running lifesaver tests:"
+    echo "${bats_version} was found in your system and used to run lifesaver tests:"
     echo
-    bats ./test.bats
+    bats "$test_dir"/test.bats
 else
     echo "./.bats/bats/bin/bats couldn't be found."
     echo "You may need to initialize the bats git submodules"
